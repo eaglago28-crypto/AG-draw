@@ -43,6 +43,9 @@ public slots:
     void setActiveTool(agdraw::ui::Tool tool);
     void setActiveColor(const QColor &color);
     void setSelectionStrokeWidth(double width);
+    void setSelectionShadow(bool enabled);
+    void setSelectionGradient(bool enabled);
+    void refreshView();
 
 signals:
     void statusMessage(const QString &text);

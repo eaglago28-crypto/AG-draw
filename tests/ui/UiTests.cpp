@@ -1,10 +1,14 @@
+#include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QToolBar>
+#include <QToolButton>
 
 #include "CanvasView.h"
 #include "Document.h"
 #include "Layer.h"
+#include "LayersPanel.h"
 #include "MainWindow.h"
 #include "PropertiesBar.h"
 #include "RectShape.h"
@@ -26,6 +30,8 @@ private slots:
     void toolShortcutSwitchesActiveTool();
     void zOrderShortcutsReorderShapes();
     void propertiesBarEditsStrokeWidth();
+    void propertiesBarTogglesShadowAndGradient();
+    void layersPanelTogglesVisibility();
     void fileRoundTripThroughCanvas();
 };
 
@@ -98,6 +104,76 @@ void UiTests::propertiesBarEditsStrokeWidth() {
 
     canvas->document().undoStack()->undo();
     QCOMPARE(shape->strokeWidth, 1.0);
+}
+
+void UiTests::propertiesBarTogglesShadowAndGradient() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    toolbox->actions()[kRectangleIndex]->trigger();
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(100, 100));
+    QTest::mouseMove(canvas->viewport(), QPoint(200, 180));
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(200, 180));
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(150, 140));
+
+    const auto checkBoxes = propertiesBar->findChildren<QCheckBox *>();
+    QCOMPARE(checkBoxes.size(), 2);
+    QCheckBox *shadowCheck = checkBoxes[0];
+    QCheckBox *gradientCheck = checkBoxes[1];
+    QVERIFY(shadowCheck->isEnabled());
+    QVERIFY(gradientCheck->isEnabled());
+
+    Shape *shape = canvas->document().activeLayer()->shapes().front().get();
+    QVERIFY(!shape->shadowEnabled);
+    QVERIFY(!shape->gradientEnabled);
+
+    shadowCheck->setChecked(true);
+    QVERIFY(shape->shadowEnabled);
+    canvas->document().undoStack()->undo();
+    QVERIFY(!shape->shadowEnabled);
+
+    gradientCheck->setChecked(true);
+    QVERIFY(shape->gradientEnabled);
+    canvas->document().undoStack()->undo();
+    QVERIFY(!shape->gradientEnabled);
+}
+
+void UiTests::layersPanelTogglesVisibility() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *layersPanel = window.findChild<LayersPanel *>("LayersPanel");
+    QVERIFY(canvas && layersPanel);
+
+    Layer *layer = canvas->document().activeLayer();
+    layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 50, 50)));
+    QCOMPARE(canvas->document().shapeAt(QPointF(10, 10)), layer->shapes().front().get());
+
+    // Identifié par son infobulle (voir LayersPanel::refresh) plutôt que par
+    // position, pour ne pas dépendre de l'ordre des enfants Qt (le bouton
+    // "+ Calque" de la barre d'outils est aussi un QToolButton).
+    QToolButton *visibilityButton = nullptr;
+    for (QToolButton *button : layersPanel->findChildren<QToolButton *>()) {
+        if (button->toolTip() == QObject::tr("Visibilité du calque")) {
+            visibilityButton = button;
+            break;
+        }
+    }
+    QVERIFY(visibilityButton);
+    QVERIFY(visibilityButton->isChecked());
+
+    visibilityButton->setChecked(false);
+    QVERIFY(!layer->isVisible());
+    QVERIFY(canvas->document().shapeAt(QPointF(10, 10)) == nullptr);
+
+    visibilityButton->setChecked(true);
+    QVERIFY(layer->isVisible());
+    QVERIFY(canvas->document().shapeAt(QPointF(10, 10)) != nullptr);
 }
 
 void UiTests::fileRoundTripThroughCanvas() {

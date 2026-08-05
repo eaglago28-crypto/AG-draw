@@ -2,8 +2,11 @@
 
 #include "Document.h"
 
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QListWidget>
 #include <QToolBar>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -25,6 +28,7 @@ LayersPanel::LayersPanel(QWidget *parent) : QDockWidget(tr("Calques"), parent) {
         }
         m_document->addLayer(tr("Calque %1").arg(static_cast<int>(m_document->layers().size()) + 1));
         refresh();
+        emit documentChanged();
     });
     layout->addWidget(toolbar);
 
@@ -56,10 +60,51 @@ void LayersPanel::refresh() {
     if (!m_document) {
         return;
     }
+
+    // La liste affiche le calque le plus récent en haut (ordre inverse).
     const auto &layers = m_document->layers();
     for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
-        m_list->addItem((*it)->name());
+        engine::Layer *layer = it->get();
+
+        auto *item = new QListWidgetItem(m_list);
+        m_list->addItem(item);
+
+        auto *row = new QWidget(m_list);
+        auto *rowLayout = new QHBoxLayout(row);
+        rowLayout->setContentsMargins(4, 2, 4, 2);
+
+        auto *visibleButton = new QToolButton(row);
+        visibleButton->setCheckable(true);
+        visibleButton->setChecked(layer->isVisible());
+        visibleButton->setToolTip(tr("Visibilité du calque"));
+        visibleButton->setText(layer->isVisible() ? QStringLiteral("\U0001F441") : QStringLiteral("—"));
+        connect(visibleButton, &QToolButton::toggled, this, [this, layer, visibleButton](bool checked) {
+            layer->setVisible(checked);
+            visibleButton->setText(checked ? QStringLiteral("\U0001F441") : QStringLiteral("—"));
+            emit documentChanged();
+        });
+
+        auto *lockButton = new QToolButton(row);
+        lockButton->setCheckable(true);
+        lockButton->setChecked(layer->isLocked());
+        lockButton->setToolTip(tr("Verrouiller le calque"));
+        lockButton->setText(layer->isLocked() ? QStringLiteral("\U0001F512") : QStringLiteral("\U0001F513"));
+        connect(lockButton, &QToolButton::toggled, this, [this, layer, lockButton](bool checked) {
+            layer->setLocked(checked);
+            lockButton->setText(checked ? QStringLiteral("\U0001F512") : QStringLiteral("\U0001F513"));
+            emit documentChanged();
+        });
+
+        auto *nameLabel = new QLabel(layer->name(), row);
+
+        rowLayout->addWidget(visibleButton);
+        rowLayout->addWidget(lockButton);
+        rowLayout->addWidget(nameLabel, 1);
+
+        item->setSizeHint(row->sizeHint());
+        m_list->setItemWidget(item, row);
     }
+
     if (m_list->count() > 0) {
         m_list->setCurrentRow(0);
     }

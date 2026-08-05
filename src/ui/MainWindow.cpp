@@ -37,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     m_layersPanel = new LayersPanel(this);
     addDockWidget(Qt::RightDockWidgetArea, m_layersPanel);
     m_layersPanel->setDocument(&m_canvas->document());
+    connect(m_layersPanel, &LayersPanel::documentChanged, m_canvas, &CanvasView::refreshView);
 
     connect(m_colorPalette, &ColorPalette::colorSelected, m_canvas, &CanvasView::setActiveColor);
     connect(m_canvas, &CanvasView::statusMessage, this, [this](const QString &text) {
@@ -44,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     });
     connect(m_canvas, &CanvasView::selectionChanged, m_propertiesBar, &PropertiesBar::setSelectedShape);
     connect(m_propertiesBar, &PropertiesBar::strokeWidthEdited, m_canvas, &CanvasView::setSelectionStrokeWidth);
+    connect(m_propertiesBar, &PropertiesBar::shadowToggled, m_canvas, &CanvasView::setSelectionShadow);
+    connect(m_propertiesBar, &PropertiesBar::gradientToggled, m_canvas, &CanvasView::setSelectionGradient);
     connect(m_canvas, &CanvasView::toolShortcutRequested, this, [this](Tool tool) {
         const auto actions = m_toolBox->actions();
         const int index = static_cast<int>(tool);

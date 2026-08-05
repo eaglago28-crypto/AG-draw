@@ -24,6 +24,9 @@ private slots:
     void shapeAtHitTest();
     void pathBezierBoundsDifferFromStraight();
     void agdRoundTrip();
+    void shadowAndGradientUndo();
+    void agdRoundTripPreservesEffects();
+    void hiddenLockedLayerIgnoredByHitTest();
 };
 
 void EngineTests::addShapeUndo() {
@@ -148,6 +151,75 @@ void EngineTests::agdRoundTrip() {
 
     QCOMPARE(loaded.layers().size(), size_t(1));
     QCOMPARE(loaded.activeLayer()->shapeCount(), size_t(4));
+}
+
+void EngineTests::shadowAndGradientUndo() {
+    Document doc;
+    Shape *rect = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 10, 10)));
+    QVERIFY(rect->supportsFillEffects());
+    QVERIFY(!rect->shadowEnabled);
+    QVERIFY(!rect->gradientEnabled);
+
+    doc.undoStack()->push(new SetShadowCommand(rect, rect->shadowEnabled, true));
+    QVERIFY(rect->shadowEnabled);
+    doc.undoStack()->undo();
+    QVERIFY(!rect->shadowEnabled);
+
+    doc.undoStack()->push(new SetGradientCommand(rect, rect->gradientEnabled, true));
+    QVERIFY(rect->gradientEnabled);
+    doc.undoStack()->undo();
+    QVERIFY(!rect->gradientEnabled);
+
+    // Le tracé (plume) ne prend pas en charge les effets de remplissage.
+    const QVector<PathNode> nodes = {PathNode{QPointF(0, 0), QPointF(0, 0)}, PathNode{QPointF(5, 5), QPointF(0, 0)}};
+    PathShape path(nodes);
+    QVERIFY(!path.supportsFillEffects());
+}
+
+void EngineTests::agdRoundTripPreservesEffects() {
+    Document doc;
+    Layer *layer = doc.activeLayer();
+    auto *rect = static_cast<RectShape *>(layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 30, 30))));
+    rect->shadowEnabled = true;
+    rect->shadowColor = QColor(10, 20, 30, 200);
+    rect->shadowOffset = QPointF(3, 4);
+    rect->gradientEnabled = true;
+    rect->gradientStartColor = QColor(255, 0, 0);
+    rect->gradientEndColor = QColor(0, 0, 255);
+    rect->gradientAngle = 45.0;
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("effects.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    Shape *loadedShape = loaded.activeLayer()->shapes().front().get();
+    QVERIFY(loadedShape->shadowEnabled);
+    QCOMPARE(loadedShape->shadowColor, QColor(10, 20, 30, 200));
+    QCOMPARE(loadedShape->shadowOffset, QPointF(3, 4));
+    QVERIFY(loadedShape->gradientEnabled);
+    QCOMPARE(loadedShape->gradientStartColor, QColor(255, 0, 0));
+    QCOMPARE(loadedShape->gradientEndColor, QColor(0, 0, 255));
+    QCOMPARE(loadedShape->gradientAngle, 45.0);
+}
+
+void EngineTests::hiddenLockedLayerIgnoredByHitTest() {
+    Document doc;
+    Layer &hiddenLayer = doc.addLayer(QStringLiteral("Caché"));
+    Shape *shape = hiddenLayer.addShape(std::make_unique<RectShape>(QRectF(0, 0, 50, 50)));
+    QCOMPARE(doc.shapeAt(QPointF(10, 10)), shape);
+
+    hiddenLayer.setVisible(false);
+    QVERIFY(doc.shapeAt(QPointF(10, 10)) == nullptr);
+
+    hiddenLayer.setVisible(true);
+    hiddenLayer.setLocked(true);
+    QVERIFY(doc.shapeAt(QPointF(10, 10)) == nullptr);
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

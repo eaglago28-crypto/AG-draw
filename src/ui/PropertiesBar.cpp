@@ -2,8 +2,9 @@
 
 #include "Shape.h"
 
-#include <QLabel>
+#include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QLabel>
 
 namespace agdraw::ui {
 
@@ -37,6 +38,18 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     m_strokeWidth->setEnabled(false);
     connect(m_strokeWidth, &QDoubleSpinBox::valueChanged, this, &PropertiesBar::strokeWidthEdited);
     addWidget(m_strokeWidth);
+
+    addSeparator();
+
+    m_shadowCheck = new QCheckBox(tr("Ombre portée"), this);
+    m_shadowCheck->setEnabled(false);
+    connect(m_shadowCheck, &QCheckBox::toggled, this, &PropertiesBar::shadowToggled);
+    addWidget(m_shadowCheck);
+
+    m_gradientCheck = new QCheckBox(tr("Dégradé"), this);
+    m_gradientCheck->setEnabled(false);
+    connect(m_gradientCheck, &QCheckBox::toggled, this, &PropertiesBar::gradientToggled);
+    addWidget(m_gradientCheck);
 }
 
 void PropertiesBar::setActiveTool(Tool tool) {
@@ -44,12 +57,25 @@ void PropertiesBar::setActiveTool(Tool tool) {
 }
 
 void PropertiesBar::setSelectedShape(engine::Shape *shape) {
-    const QSignalBlocker blocker(m_strokeWidth);
+    const QSignalBlocker strokeBlocker(m_strokeWidth);
+    const QSignalBlocker shadowBlocker(m_shadowCheck);
+    const QSignalBlocker gradientBlocker(m_gradientCheck);
+
     if (shape) {
         m_strokeWidth->setEnabled(true);
         m_strokeWidth->setValue(shape->strokeWidth);
+
+        const bool supportsEffects = shape->supportsFillEffects();
+        m_shadowCheck->setEnabled(supportsEffects);
+        m_shadowCheck->setChecked(shape->shadowEnabled);
+        m_gradientCheck->setEnabled(supportsEffects);
+        m_gradientCheck->setChecked(shape->gradientEnabled);
     } else {
         m_strokeWidth->setEnabled(false);
+        m_shadowCheck->setEnabled(false);
+        m_shadowCheck->setChecked(false);
+        m_gradientCheck->setEnabled(false);
+        m_gradientCheck->setChecked(false);
     }
 }
 

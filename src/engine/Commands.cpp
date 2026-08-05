@@ -95,4 +95,26 @@ void ReorderShapeCommand::undo() {
     m_layer->moveShape(m_to, m_from);
 }
 
+SetShadowCommand::SetShadowCommand(Shape *shape, bool oldEnabled, bool newEnabled)
+    : QUndoCommand(QObject::tr("Ombre portée")), m_shape(shape), m_oldEnabled(oldEnabled), m_newEnabled(newEnabled) {}
+
+void SetShadowCommand::redo() {
+    m_shape->shadowEnabled = m_newEnabled;
+}
+
+void SetShadowCommand::undo() {
+    m_shape->shadowEnabled = m_oldEnabled;
+}
+
+SetGradientCommand::SetGradientCommand(Shape *shape, bool oldEnabled, bool newEnabled)
+    : QUndoCommand(QObject::tr("Dégradé")), m_shape(shape), m_oldEnabled(oldEnabled), m_newEnabled(newEnabled) {}
+
+void SetGradientCommand::redo() {
+    m_shape->gradientEnabled = m_newEnabled;
+}
+
+void SetGradientCommand::undo() {
+    m_shape->gradientEnabled = m_oldEnabled;
+}
+
 } // namespace agdraw::engine

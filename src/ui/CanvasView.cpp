@@ -183,6 +183,54 @@ bool CanvasView::exportToPng(const QString &path, QString *errorMessage) {
     return io::exportPng(*m_document, path, pageRect, pageRect.size().toSize(), errorMessage);
 }
 
+void CanvasView::setSelectionShadow(bool enabled) {
+    QVector<engine::Shape *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (shape->supportsFillEffects()) {
+            targets.append(shape);
+        }
+    }
+    if (targets.isEmpty()) {
+        return;
+    }
+    if (targets.size() == 1) {
+        m_document->undoStack()->push(new engine::SetShadowCommand(targets.first(), targets.first()->shadowEnabled, enabled));
+    } else {
+        m_document->undoStack()->beginMacro(tr("Ombre portée"));
+        for (engine::Shape *shape : targets) {
+            m_document->undoStack()->push(new engine::SetShadowCommand(shape, shape->shadowEnabled, enabled));
+        }
+        m_document->undoStack()->endMacro();
+    }
+    m_documentItem->update();
+}
+
+void CanvasView::setSelectionGradient(bool enabled) {
+    QVector<engine::Shape *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (shape->supportsFillEffects()) {
+            targets.append(shape);
+        }
+    }
+    if (targets.isEmpty()) {
+        return;
+    }
+    if (targets.size() == 1) {
+        m_document->undoStack()->push(new engine::SetGradientCommand(targets.first(), targets.first()->gradientEnabled, enabled));
+    } else {
+        m_document->undoStack()->beginMacro(tr("Dégradé"));
+        for (engine::Shape *shape : targets) {
+            m_document->undoStack()->push(new engine::SetGradientCommand(shape, shape->gradientEnabled, enabled));
+        }
+        m_document->undoStack()->endMacro();
+    }
+    m_documentItem->update();
+}
+
+void CanvasView::refreshView() {
+    m_documentItem->update();
+}
+
 bool CanvasView::isEmpty() const {
     for (const auto &layer : m_document->layers()) {
         if (!layer->shapes().empty()) {

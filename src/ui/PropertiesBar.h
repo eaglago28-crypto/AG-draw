@@ -5,6 +5,7 @@
 
 class QLabel;
 class QDoubleSpinBox;
+class QCheckBox;
 
 namespace agdraw::engine {
 class Shape;
@@ -13,7 +14,8 @@ class Shape;
 namespace agdraw::ui {
 
 // Barre des propriétés en haut : affiche les réglages de l'outil actif et,
-// si une forme unique est sélectionnée, son épaisseur de trait réelle.
+// si une forme est sélectionnée, ses propriétés réelles (épaisseur de
+// trait, ombre portée, dégradé).
 class PropertiesBar : public QToolBar {
     Q_OBJECT
 
@@ -26,10 +28,14 @@ public slots:
 
 signals:
     void strokeWidthEdited(double value);
+    void shadowToggled(bool enabled);
+    void gradientToggled(bool enabled);
 
 private:
     QLabel *m_toolLabel;
     QDoubleSpinBox *m_strokeWidth;
+    QCheckBox *m_shadowCheck;
+    QCheckBox *m_gradientCheck;
 };
 
 } // namespace agdraw::ui

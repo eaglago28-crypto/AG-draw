@@ -129,4 +129,32 @@ private:
     size_t m_to;
 };
 
+// Active/désactive l'ombre portée d'une forme.
+class SetShadowCommand : public QUndoCommand {
+public:
+    SetShadowCommand(Shape *shape, bool oldEnabled, bool newEnabled);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    bool m_oldEnabled;
+    bool m_newEnabled;
+};
+
+// Active/désactive le remplissage en dégradé d'une forme.
+class SetGradientCommand : public QUndoCommand {
+public:
+    SetGradientCommand(Shape *shape, bool oldEnabled, bool newEnabled);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    bool m_oldEnabled;
+    bool m_newEnabled;
+};
+
 } // namespace agdraw::engine

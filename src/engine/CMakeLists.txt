@@ -2,6 +2,7 @@ find_package(Qt6 REQUIRED COMPONENTS Gui)
 
 add_library(ag_engine STATIC
     Shape.h
+    Shape.cpp
     RectShape.h
     RectShape.cpp
     EllipseShape.h

@@ -22,6 +22,17 @@ QJsonObject shapeCommonToJson(const engine::Shape &shape) {
     obj["fill"] = shape.fillColor.name(QColor::HexArgb);
     obj["stroke"] = shape.strokeColor.name(QColor::HexArgb);
     obj["strokeWidth"] = shape.strokeWidth;
+
+    obj["shadowEnabled"] = shape.shadowEnabled;
+    obj["shadowColor"] = shape.shadowColor.name(QColor::HexArgb);
+    obj["shadowOffsetX"] = shape.shadowOffset.x();
+    obj["shadowOffsetY"] = shape.shadowOffset.y();
+
+    obj["gradientEnabled"] = shape.gradientEnabled;
+    obj["gradientStart"] = shape.gradientStartColor.name(QColor::HexArgb);
+    obj["gradientEnd"] = shape.gradientEndColor.name(QColor::HexArgb);
+    obj["gradientAngle"] = shape.gradientAngle;
+
     return obj;
 }
 
@@ -35,6 +46,25 @@ void applyShapeCommon(engine::Shape &shape, const QJsonObject &obj) {
         shape.strokeColor = stroke;
     }
     shape.strokeWidth = obj.value("strokeWidth").toDouble(shape.strokeWidth);
+
+    shape.shadowEnabled = obj.value("shadowEnabled").toBool(shape.shadowEnabled);
+    const QColor shadowColor(obj.value("shadowColor").toString());
+    if (shadowColor.isValid()) {
+        shape.shadowColor = shadowColor;
+    }
+    shape.shadowOffset = QPointF(obj.value("shadowOffsetX").toDouble(shape.shadowOffset.x()),
+                                  obj.value("shadowOffsetY").toDouble(shape.shadowOffset.y()));
+
+    shape.gradientEnabled = obj.value("gradientEnabled").toBool(shape.gradientEnabled);
+    const QColor gradientStart(obj.value("gradientStart").toString());
+    if (gradientStart.isValid()) {
+        shape.gradientStartColor = gradientStart;
+    }
+    const QColor gradientEnd(obj.value("gradientEnd").toString());
+    if (gradientEnd.isValid()) {
+        shape.gradientEndColor = gradientEnd;
+    }
+    shape.gradientAngle = obj.value("gradientAngle").toDouble(shape.gradientAngle);
 }
 
 QJsonObject rectToJson(const engine::RectShape &shape) {
