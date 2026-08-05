@@ -52,6 +52,7 @@ public slots:
     void setSelectionContour(bool enabled);
     void alignSelection(agdraw::ui::AlignMode mode);
     void distributeSelection(agdraw::ui::DistributeMode mode);
+    void blendSelection();
     void refreshView();
 
 signals:

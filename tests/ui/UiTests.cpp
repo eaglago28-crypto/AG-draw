@@ -42,6 +42,7 @@ private slots:
     void layersPanelTogglesVisibility();
     void alignSelectionAligns();
     void distributeSelectionSpacesEvenly();
+    void blendButtonCreatesIntermediateShapes();
     void multiLineTextBoundsTallerThanSingleLine();
     void textToolCreatesMultiLineShape();
     void pagesPanelAddsAndNavigatesPages();
@@ -257,6 +258,51 @@ void UiTests::distributeSelectionSpacesEvenly() {
     const qreal centerB = b->bounds().center().x();
     const qreal centerC = c->bounds().center().x();
     QCOMPARE(centerB - centerA, centerC - centerB);
+}
+
+void UiTests::blendButtonCreatesIntermediateShapes() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    Layer *layer = canvas->document().activeLayer();
+    Shape *a = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+    Shape *b = layer->addShape(std::make_unique<RectShape>(QRectF(100, 0, 20, 20)));
+    a->fillColor = Qt::black;
+    b->fillColor = Qt::white;
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(10, 10)));
+
+    QToolButton *blendButton = nullptr;
+    for (QToolButton *button : propertiesBar->findChildren<QToolButton *>()) {
+        if (button->text() == QObject::tr("Fondu")) {
+            blendButton = button;
+            break;
+        }
+    }
+    QVERIFY(blendButton);
+    QVERIFY(!blendButton->isEnabled()); // une seule forme sélectionnée pour l'instant
+
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::ShiftModifier, canvas->mapFromScene(QPointF(110, 10)));
+    QVERIFY(blendButton->isEnabled());
+
+    QTest::mouseClick(blendButton, Qt::LeftButton);
+
+    QCOMPARE(layer->shapeCount(), size_t(7)); // a, b, + 5 formes intermédiaires
+    // Le fondu progresse de la couleur la plus sombre (a) vers la plus claire (b).
+    for (size_t i = 2; i < layer->shapeCount() - 1; ++i) {
+        QVERIFY(layer->shapes()[i]->fillColor.red() < layer->shapes()[i + 1]->fillColor.red());
+    }
+
+    // Un seul undo doit retirer les 5 formes générées (poussées dans une macro).
+    canvas->document().undoStack()->undo();
+    QCOMPARE(layer->shapeCount(), size_t(2));
+    QCOMPARE(a->bounds(), QRectF(0, 0, 20, 20));
+    QCOMPARE(b->bounds(), QRectF(100, 0, 20, 20));
 }
 
 void UiTests::multiLineTextBoundsTallerThanSingleLine() {

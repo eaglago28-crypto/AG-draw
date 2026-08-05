@@ -37,6 +37,7 @@ signals:
     void contourToggled(bool enabled);
     void alignRequested(agdraw::ui::AlignMode mode);
     void distributeRequested(agdraw::ui::DistributeMode mode);
+    void blendRequested();
 
 private:
     QToolButton *addAlignButton(const QString &text, const QString &tooltip, AlignMode mode);
@@ -49,6 +50,7 @@ private:
     QCheckBox *m_contourCheck;
     QList<QToolButton *> m_alignButtons;
     QList<QToolButton *> m_distributeButtons;
+    QToolButton *m_blendButton;
 };
 
 } // namespace agdraw::ui

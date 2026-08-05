@@ -71,6 +71,15 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
 
     addDistributeButton(QStringLiteral("⇔"), tr("Distribuer horizontalement"), DistributeMode::Horizontal);
     addDistributeButton(QStringLiteral("⇕"), tr("Distribuer verticalement"), DistributeMode::Vertical);
+
+    addSeparator();
+
+    m_blendButton = new QToolButton(this);
+    m_blendButton->setText(tr("Fondu"));
+    m_blendButton->setToolTip(tr("Créer un fondu entre les deux formes sélectionnées (même type)"));
+    m_blendButton->setEnabled(false);
+    connect(m_blendButton, &QToolButton::clicked, this, &PropertiesBar::blendRequested);
+    addWidget(m_blendButton);
 }
 
 QToolButton *PropertiesBar::addAlignButton(const QString &text, const QString &tooltip, AlignMode mode) {
@@ -134,6 +143,7 @@ void PropertiesBar::setSelectionCount(int count) {
     for (QToolButton *button : m_distributeButtons) {
         button->setEnabled(count >= 3);
     }
+    m_blendButton->setEnabled(count == 2);
 }
 
 } // namespace agdraw::ui

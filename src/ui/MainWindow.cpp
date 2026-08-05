@@ -59,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(m_propertiesBar, &PropertiesBar::contourToggled, m_canvas, &CanvasView::setSelectionContour);
     connect(m_propertiesBar, &PropertiesBar::alignRequested, m_canvas, &CanvasView::alignSelection);
     connect(m_propertiesBar, &PropertiesBar::distributeRequested, m_canvas, &CanvasView::distributeSelection);
+    connect(m_propertiesBar, &PropertiesBar::blendRequested, m_canvas, &CanvasView::blendSelection);
     connect(m_canvas, &CanvasView::selectionCountChanged, m_propertiesBar, &PropertiesBar::setSelectionCount);
     connect(m_canvas, &CanvasView::toolShortcutRequested, this, [this](Tool tool) {
         const auto actions = m_toolBox->actions();

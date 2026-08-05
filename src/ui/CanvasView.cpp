@@ -354,6 +354,57 @@ void CanvasView::distributeSelection(DistributeMode mode) {
     emit statusMessage(tr("Distribué"));
 }
 
+void CanvasView::blendSelection() {
+    if (m_selection.size() != 2) {
+        emit statusMessage(tr("Sélectionnez exactement deux formes pour créer un fondu"));
+        return;
+    }
+
+    engine::Shape *shapeA = m_selection.first();
+    engine::Shape *shapeB = m_selection.last();
+
+    const bool bothRects = dynamic_cast<engine::RectShape *>(shapeA) && dynamic_cast<engine::RectShape *>(shapeB);
+    const bool bothEllipses =
+        dynamic_cast<engine::EllipseShape *>(shapeA) && dynamic_cast<engine::EllipseShape *>(shapeB);
+    if (!bothRects && !bothEllipses) {
+        emit statusMessage(tr("Le fondu nécessite deux rectangles ou deux ellipses"));
+        return;
+    }
+
+    engine::Layer *layer = m_document->findLayerOf(shapeA);
+    if (!layer) {
+        return;
+    }
+
+    constexpr int kBlendSteps = 5;
+    const QRectF boundsA = shapeA->bounds();
+    const QRectF boundsB = shapeB->bounds();
+
+    m_document->undoStack()->beginMacro(tr("Fondu"));
+    for (int i = 1; i <= kBlendSteps; ++i) {
+        const qreal t = static_cast<qreal>(i) / (kBlendSteps + 1);
+        const QRectF interpolated(boundsA.x() + (boundsB.x() - boundsA.x()) * t,
+                                   boundsA.y() + (boundsB.y() - boundsA.y()) * t,
+                                   boundsA.width() + (boundsB.width() - boundsA.width()) * t,
+                                   boundsA.height() + (boundsB.height() - boundsA.height()) * t);
+
+        std::unique_ptr<engine::Shape> intermediate;
+        if (bothRects) {
+            intermediate = std::make_unique<engine::RectShape>(interpolated);
+        } else {
+            intermediate = std::make_unique<engine::EllipseShape>(interpolated);
+        }
+        intermediate->fillColor = engine::interpolateColor(shapeA->fillColor, shapeB->fillColor, t);
+        intermediate->strokeColor = engine::interpolateColor(shapeA->strokeColor, shapeB->strokeColor, t);
+        intermediate->strokeWidth = shapeA->strokeWidth + (shapeB->strokeWidth - shapeA->strokeWidth) * t;
+
+        m_document->undoStack()->push(new engine::AddShapeCommand(layer, std::move(intermediate), tr("Fondu")));
+    }
+    m_document->undoStack()->endMacro();
+    m_documentItem->update();
+    emit statusMessage(tr("Fondu créé"));
+}
+
 void CanvasView::refreshView() {
     m_documentItem->update();
 }
