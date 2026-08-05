@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Layer.h"
+#include "Macro.h"
 #include "Page.h"
 
 #include <QUndoStack>
@@ -45,6 +46,15 @@ public:
 
     const std::vector<std::unique_ptr<Page>> &pages() const { return m_pages; }
 
+    // Bibliothèque de macros du document (voir Macro.h). La gestion des
+    // macros elle-même (ajouter/retirer une macro enregistrée) n'est pas
+    // annulable : ce n'est pas une modification du contenu visuel, juste
+    // un ensemble de préréglages, à l'instar des macros VBA de CorelDRAW.
+    void addMacro(Macro macro) { m_macros.push_back(std::move(macro)); }
+    void removeMacro(const QString &name);
+    void clearMacros() { m_macros.clear(); }
+    const std::vector<Macro> &macros() const { return m_macros; }
+
     QUndoStack *undoStack() { return &m_undoStack; }
 
 private:
@@ -53,6 +63,8 @@ private:
 
     std::vector<std::unique_ptr<Page>> m_pages;
     Page *m_activePage = nullptr;
+
+    std::vector<Macro> m_macros;
 
     QUndoStack m_undoStack;
 };

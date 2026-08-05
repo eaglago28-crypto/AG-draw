@@ -17,6 +17,8 @@ add_library(ag_ui STATIC
     LayersPanel.h
     PagesPanel.cpp
     PagesPanel.h
+    MacroPanel.cpp
+    MacroPanel.h
     ColorPalette.cpp
     ColorPalette.h
 )

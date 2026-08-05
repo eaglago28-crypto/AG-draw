@@ -108,6 +108,12 @@ void CanvasView::setActiveColor(const QColor &color) {
             }
         }
         m_document->undoStack()->endMacro();
+        if (m_recordingMacro) {
+            engine::MacroStep step;
+            step.kind = engine::MacroStep::Kind::SetFillColor;
+            step.color = color;
+            recordMacroStep(step);
+        }
         m_documentItem->update();
     }
     emit statusMessage(tr("Couleur active : %1").arg(color.name()));
@@ -165,6 +171,7 @@ void CanvasView::newDocument() {
     m_document->addLayer(tr("Calque 1"));
     m_document->clearPages();
     m_document->addPage(tr("Page 1"), QRectF(0, 0, 794, 1123));
+    m_document->clearMacros();
     m_document->undoStack()->clear();
     setSelection({});
     m_penNodes.clear();
@@ -232,6 +239,12 @@ void CanvasView::setSelectionShadow(bool enabled) {
         }
         m_document->undoStack()->endMacro();
     }
+    if (m_recordingMacro) {
+        engine::MacroStep step;
+        step.kind = engine::MacroStep::Kind::SetShadow;
+        step.enabled = enabled;
+        recordMacroStep(step);
+    }
     m_documentItem->update();
 }
 
@@ -254,6 +267,12 @@ void CanvasView::setSelectionGradient(bool enabled) {
         }
         m_document->undoStack()->endMacro();
     }
+    if (m_recordingMacro) {
+        engine::MacroStep step;
+        step.kind = engine::MacroStep::Kind::SetGradient;
+        step.enabled = enabled;
+        recordMacroStep(step);
+    }
     m_documentItem->update();
 }
 
@@ -275,6 +294,12 @@ void CanvasView::setSelectionContour(bool enabled) {
             m_document->undoStack()->push(new engine::SetContourCommand(shape, shape->contourEnabled, enabled));
         }
         m_document->undoStack()->endMacro();
+    }
+    if (m_recordingMacro) {
+        engine::MacroStep step;
+        step.kind = engine::MacroStep::Kind::SetContour;
+        step.enabled = enabled;
+        recordMacroStep(step);
     }
     m_documentItem->update();
 }
@@ -328,6 +353,12 @@ void CanvasView::setSelectionExtrusion(bool enabled) {
             m_document->undoStack()->push(new engine::SetExtrusionCommand(shape, shape->extrusionEnabled, enabled));
         }
         m_document->undoStack()->endMacro();
+    }
+    if (m_recordingMacro) {
+        engine::MacroStep step;
+        step.kind = engine::MacroStep::Kind::SetExtrusion;
+        step.enabled = enabled;
+        recordMacroStep(step);
     }
     m_documentItem->update();
 }
@@ -490,6 +521,41 @@ void CanvasView::applyPowerClip() {
     emit statusMessage(tr("PowerClip créé"));
 }
 
+void CanvasView::startMacroRecording() {
+    m_recordingMacro = true;
+    m_recordingSteps.clear();
+    emit statusMessage(tr("Enregistrement de macro en cours…"));
+}
+
+void CanvasView::stopMacroRecording(const QString &name) {
+    m_recordingMacro = false;
+    if (m_recordingSteps.isEmpty() || name.trimmed().isEmpty()) {
+        m_recordingSteps.clear();
+        emit statusMessage(tr("Enregistrement annulé (aucune action capturée)"));
+        return;
+    }
+    engine::Macro macro;
+    macro.name = name.trimmed();
+    macro.steps = m_recordingSteps;
+    m_recordingSteps.clear();
+    m_document->addMacro(std::move(macro));
+    emit statusMessage(tr("Macro « %1 » enregistrée (%2 étape(s))").arg(name.trimmed()).arg(macro.steps.size()));
+}
+
+void CanvasView::recordMacroStep(const engine::MacroStep &step) {
+    m_recordingSteps.append(step);
+}
+
+void CanvasView::playMacro(const engine::Macro &macro) {
+    if (m_selection.isEmpty()) {
+        emit statusMessage(tr("Sélectionnez au moins une forme pour rejouer une macro"));
+        return;
+    }
+    engine::applyMacro(*m_document, macro, m_selection);
+    m_documentItem->update();
+    emit statusMessage(tr("Macro « %1 » rejouée").arg(macro.name));
+}
+
 void CanvasView::refreshView() {
     m_documentItem->update();
 }
@@ -518,6 +584,12 @@ void CanvasView::setSelectionStrokeWidth(double width) {
             m_document->undoStack()->push(new engine::SetStrokeWidthCommand(shape, shape->strokeWidth, width));
         }
         m_document->undoStack()->endMacro();
+    }
+    if (m_recordingMacro) {
+        engine::MacroStep step;
+        step.kind = engine::MacroStep::Kind::SetStrokeWidth;
+        step.value = width;
+        recordMacroStep(step);
     }
     m_documentItem->update();
 }
@@ -1003,6 +1075,12 @@ void CanvasView::mouseReleaseEvent(QMouseEvent *event) {
                         m_document->undoStack()->push(new engine::TranslateShapeCommand(shape, totalDelta));
                     }
                     m_document->undoStack()->endMacro();
+                }
+                if (m_recordingMacro) {
+                    engine::MacroStep step;
+                    step.kind = engine::MacroStep::Kind::Translate;
+                    step.delta = totalDelta;
+                    recordMacroStep(step);
                 }
             }
         }

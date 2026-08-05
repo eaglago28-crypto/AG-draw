@@ -7,6 +7,7 @@
 #include "PropertiesBar.h"
 #include "LayersPanel.h"
 #include "PagesPanel.h"
+#include "MacroPanel.h"
 #include "ColorPalette.h"
 
 #include <QAction>
@@ -47,6 +48,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     m_pagesPanel->setDocument(&m_canvas->document());
     connect(m_pagesPanel, &PagesPanel::documentChanged, m_canvas, &CanvasView::refreshView);
     connect(m_pagesPanel, &PagesPanel::pageActivated, m_canvas, &CanvasView::goToPage);
+
+    m_macroPanel = new MacroPanel(this);
+    addDockWidget(Qt::RightDockWidgetArea, m_macroPanel);
+    m_macroPanel->setDocument(&m_canvas->document());
+    connect(m_macroPanel, &MacroPanel::documentChanged, m_canvas, &CanvasView::refreshView);
+    connect(m_macroPanel, &MacroPanel::recordingStartRequested, m_canvas, &CanvasView::startMacroRecording);
+    connect(m_macroPanel, &MacroPanel::recordingStopRequested, m_canvas, &CanvasView::stopMacroRecording);
+    connect(m_macroPanel, &MacroPanel::macroPlayRequested, m_canvas, &CanvasView::playMacro);
 
     connect(m_colorPalette, &ColorPalette::colorSelected, m_canvas, &CanvasView::setActiveColor);
     connect(m_canvas, &CanvasView::statusMessage, this, [this](const QString &text) {

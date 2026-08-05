@@ -7,6 +7,7 @@
 
 #include "Arrange.h"
 #include "BrushStroke.h"
+#include "Macro.h"
 #include "PathShape.h"
 #include "ToolBox.h"
 
@@ -42,6 +43,15 @@ public:
     bool exportToPng(const QString &path, QString *errorMessage = nullptr);
     bool isEmpty() const;
     void goToPage(agdraw::engine::Page *page);
+
+    // Enregistrement de macro : capture les actions (couleur, épaisseur de
+    // trait, effets, déplacement) appliquées à la sélection pendant qu'un
+    // enregistrement est en cours. stopMacroRecording() n'ajoute la macro
+    // au document que si au moins une étape a été capturée.
+    void startMacroRecording();
+    void stopMacroRecording(const QString &name);
+    bool isRecordingMacro() const { return m_recordingMacro; }
+    void playMacro(const agdraw::engine::Macro &macro);
 
 public slots:
     void setActiveTool(agdraw::ui::Tool tool);
@@ -89,6 +99,7 @@ private:
     void setSelection(QVector<agdraw::engine::Shape *> newSelection);
     void reorderSelection(bool forward, bool toExtreme);
     void commitBrushStroke();
+    void recordMacroStep(const agdraw::engine::MacroStep &step);
 
     std::unique_ptr<agdraw::engine::Document> m_document;
     DocumentItem *m_documentItem = nullptr;
@@ -142,6 +153,9 @@ private:
 
     QPlainTextEdit *m_textEditor = nullptr;
     QPointF m_textEditorScenePos;
+
+    bool m_recordingMacro = false;
+    QVector<agdraw::engine::MacroStep> m_recordingSteps;
 };
 
 } // namespace agdraw::ui

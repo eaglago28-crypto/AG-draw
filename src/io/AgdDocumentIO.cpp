@@ -4,6 +4,7 @@
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
+#include "Macro.h"
 #include "Page.h"
 #include "PathShape.h"
 #include "PowerClipGroup.h"
@@ -11,6 +12,7 @@
 #include "TextShape.h"
 
 #include <QFile>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -266,6 +268,80 @@ std::unique_ptr<engine::Shape> shapeFromJson(const QJsonObject &obj) {
     return shape;
 }
 
+QString macroStepKindToString(engine::MacroStep::Kind kind) {
+    switch (kind) {
+        case engine::MacroStep::Kind::SetFillColor: return QStringLiteral("setFillColor");
+        case engine::MacroStep::Kind::SetStrokeColor: return QStringLiteral("setStrokeColor");
+        case engine::MacroStep::Kind::SetStrokeWidth: return QStringLiteral("setStrokeWidth");
+        case engine::MacroStep::Kind::SetShadow: return QStringLiteral("setShadow");
+        case engine::MacroStep::Kind::SetGradient: return QStringLiteral("setGradient");
+        case engine::MacroStep::Kind::SetContour: return QStringLiteral("setContour");
+        case engine::MacroStep::Kind::SetExtrusion: return QStringLiteral("setExtrusion");
+        case engine::MacroStep::Kind::Translate: return QStringLiteral("translate");
+    }
+    return {};
+}
+
+bool macroStepKindFromString(const QString &text, engine::MacroStep::Kind *kind) {
+    static const QHash<QString, engine::MacroStep::Kind> kMap{
+        {QStringLiteral("setFillColor"), engine::MacroStep::Kind::SetFillColor},
+        {QStringLiteral("setStrokeColor"), engine::MacroStep::Kind::SetStrokeColor},
+        {QStringLiteral("setStrokeWidth"), engine::MacroStep::Kind::SetStrokeWidth},
+        {QStringLiteral("setShadow"), engine::MacroStep::Kind::SetShadow},
+        {QStringLiteral("setGradient"), engine::MacroStep::Kind::SetGradient},
+        {QStringLiteral("setContour"), engine::MacroStep::Kind::SetContour},
+        {QStringLiteral("setExtrusion"), engine::MacroStep::Kind::SetExtrusion},
+        {QStringLiteral("translate"), engine::MacroStep::Kind::Translate},
+    };
+    const auto it = kMap.find(text);
+    if (it == kMap.end()) {
+        return false;
+    }
+    *kind = it.value();
+    return true;
+}
+
+QJsonObject macroToJson(const engine::Macro &macro) {
+    QJsonObject obj;
+    obj["name"] = macro.name;
+    QJsonArray steps;
+    for (const engine::MacroStep &step : macro.steps) {
+        QJsonObject stepObj;
+        stepObj["kind"] = macroStepKindToString(step.kind);
+        stepObj["color"] = step.color.name(QColor::HexArgb);
+        stepObj["value"] = step.value;
+        stepObj["enabled"] = step.enabled;
+        stepObj["dx"] = step.delta.x();
+        stepObj["dy"] = step.delta.y();
+        steps.append(stepObj);
+    }
+    obj["steps"] = steps;
+    return obj;
+}
+
+engine::Macro macroFromJson(const QJsonObject &obj) {
+    engine::Macro macro;
+    macro.name = obj.value("name").toString();
+    for (const QJsonValue &value : obj.value("steps").toArray()) {
+        const QJsonObject stepObj = value.toObject();
+        engine::MacroStep::Kind kind;
+        if (!macroStepKindFromString(stepObj.value("kind").toString(), &kind)) {
+            continue;
+        }
+        engine::MacroStep step;
+        step.kind = kind;
+        const QColor color(stepObj.value("color").toString());
+        if (color.isValid()) {
+            step.color = color;
+        }
+        step.value = stepObj.value("value").toDouble();
+        step.enabled = stepObj.value("enabled").toBool();
+        step.delta = QPointF(stepObj.value("dx").toDouble(), stepObj.value("dy").toDouble());
+        macro.steps.append(step);
+    }
+    return macro;
+}
+
 } // namespace
 
 bool saveAgd(const engine::Document &document, const QString &path, QString *errorMessage) {
@@ -295,11 +371,17 @@ bool saveAgd(const engine::Document &document, const QString &path, QString *err
         pagesArray.append(pageObj);
     }
 
+    QJsonArray macrosArray;
+    for (const engine::Macro &macro : document.macros()) {
+        macrosArray.append(macroToJson(macro));
+    }
+
     QJsonObject root;
     root["format"] = "AG Draw";
     root["version"] = 1;
     root["layers"] = layersArray;
     root["pages"] = pagesArray;
+    root["macros"] = macrosArray;
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -361,6 +443,11 @@ bool loadAgd(engine::Document &document, const QString &path, QString *errorMess
         // Fichier sans page (ancien format ou fichier malformé) : page de
         // secours pour garder le document utilisable.
         document.addPage(QObject::tr("Page 1"), QRectF(0, 0, 794, 1123));
+    }
+
+    document.clearMacros();
+    for (const QJsonValue &macroValue : root.value("macros").toArray()) {
+        document.addMacro(macroFromJson(macroValue.toObject()));
     }
 
     document.undoStack()->clear();

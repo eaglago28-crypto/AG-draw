@@ -111,4 +111,10 @@ void Document::clearPages() {
     m_activePage = nullptr;
 }
 
+void Document::removeMacro(const QString &name) {
+    m_macros.erase(std::remove_if(m_macros.begin(), m_macros.end(),
+                                   [&name](const Macro &macro) { return macro.name == name; }),
+                   m_macros.end());
+}
+
 } // namespace agdraw::engine

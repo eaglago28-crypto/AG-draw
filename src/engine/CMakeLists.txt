@@ -18,6 +18,8 @@ add_library(ag_engine STATIC
     Layer.h
     Layer.cpp
     Page.h
+    Macro.h
+    Macro.cpp
     Document.h
     Document.cpp
     Commands.h

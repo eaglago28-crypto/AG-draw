@@ -9,6 +9,7 @@
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
+#include "Macro.h"
 #include "Page.h"
 #include "PathShape.h"
 #include "PowerClipGroup.h"
@@ -51,6 +52,9 @@ private slots:
     void powerClipUndoRestoresOriginalOrder();
     void powerClipClipsHitTestToContainer();
     void agdRoundTripPreservesPowerClip();
+    void applyMacroRunsStepsOnEveryTarget();
+    void applyMacroUndoesAsOneStep();
+    void agdRoundTripPreservesMacros();
 };
 
 void EngineTests::addShapeUndo() {
@@ -625,6 +629,96 @@ void EngineTests::agdRoundTripPreservesPowerClip() {
     QCOMPARE(group->container()->bounds(), QRectF(0, 0, 20, 20));
     QCOMPARE(group->contents().size(), size_t(1));
     QCOMPARE(group->contents().front()->bounds(), QRectF(2, 2, 6, 6));
+}
+
+void EngineTests::applyMacroRunsStepsOnEveryTarget() {
+    Document doc;
+    Shape *a = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 10, 10)));
+    Shape *b = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(20, 20, 10, 10)));
+
+    Macro macro;
+    macro.name = QStringLiteral("Style A");
+    MacroStep colorStep;
+    colorStep.kind = MacroStep::Kind::SetFillColor;
+    colorStep.color = QColor(0, 200, 0);
+    macro.steps.append(colorStep);
+    MacroStep moveStep;
+    moveStep.kind = MacroStep::Kind::Translate;
+    moveStep.delta = QPointF(10, 5);
+    macro.steps.append(moveStep);
+
+    applyMacro(doc, macro, {a, b});
+
+    QCOMPARE(a->fillColor, QColor(0, 200, 0));
+    QCOMPARE(b->fillColor, QColor(0, 200, 0));
+    QCOMPARE(a->bounds(), QRectF(10, 5, 10, 10));
+    QCOMPARE(b->bounds(), QRectF(30, 25, 10, 10));
+}
+
+void EngineTests::applyMacroUndoesAsOneStep() {
+    Document doc;
+    Shape *a = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 10, 10)));
+    Shape *b = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(20, 20, 10, 10)));
+    const QColor originalColor = a->fillColor;
+
+    Macro macro;
+    macro.name = QStringLiteral("Style A");
+    MacroStep colorStep;
+    colorStep.kind = MacroStep::Kind::SetFillColor;
+    colorStep.color = QColor(0, 200, 0);
+    macro.steps.append(colorStep);
+    MacroStep moveStep;
+    moveStep.kind = MacroStep::Kind::Translate;
+    moveStep.delta = QPointF(10, 5);
+    macro.steps.append(moveStep);
+
+    const int indexBefore = doc.undoStack()->index();
+    applyMacro(doc, macro, {a, b});
+    QCOMPARE(doc.undoStack()->index(), indexBefore + 1); // une seule entrée dans la pile
+
+    doc.undoStack()->undo();
+    QCOMPARE(a->fillColor, originalColor);
+    QCOMPARE(b->bounds(), QRectF(20, 20, 10, 10));
+}
+
+void EngineTests::agdRoundTripPreservesMacros() {
+    Document doc;
+    Macro macro;
+    macro.name = QStringLiteral("Style A");
+    MacroStep colorStep;
+    colorStep.kind = MacroStep::Kind::SetStrokeColor;
+    colorStep.color = QColor(10, 20, 30);
+    macro.steps.append(colorStep);
+    MacroStep shadowStep;
+    shadowStep.kind = MacroStep::Kind::SetShadow;
+    shadowStep.enabled = true;
+    macro.steps.append(shadowStep);
+    MacroStep moveStep;
+    moveStep.kind = MacroStep::Kind::Translate;
+    moveStep.delta = QPointF(3, -4);
+    macro.steps.append(moveStep);
+    doc.addMacro(macro);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("macros.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    QCOMPARE(loaded.macros().size(), size_t(1));
+    const Macro &loadedMacro = loaded.macros().front();
+    QCOMPARE(loadedMacro.name, QStringLiteral("Style A"));
+    QCOMPARE(loadedMacro.steps.size(), 3);
+    QCOMPARE(loadedMacro.steps[0].kind, MacroStep::Kind::SetStrokeColor);
+    QCOMPARE(loadedMacro.steps[0].color, QColor(10, 20, 30));
+    QCOMPARE(loadedMacro.steps[1].kind, MacroStep::Kind::SetShadow);
+    QVERIFY(loadedMacro.steps[1].enabled);
+    QCOMPARE(loadedMacro.steps[2].kind, MacroStep::Kind::Translate);
+    QCOMPARE(loadedMacro.steps[2].delta, QPointF(3, -4));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

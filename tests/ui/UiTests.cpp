@@ -12,6 +12,8 @@
 #include "Document.h"
 #include "Layer.h"
 #include "LayersPanel.h"
+#include "Macro.h"
+#include "MacroPanel.h"
 #include "MainWindow.h"
 #include "Page.h"
 #include "PagesPanel.h"
@@ -46,6 +48,7 @@ private slots:
     void blendButtonCreatesIntermediateShapes();
     void envelopeHandleDragWarpsCorner();
     void powerClipButtonGroupsSelection();
+    void macroRecordingCapturesAndReplaysSteps();
     void multiLineTextBoundsTallerThanSingleLine();
     void textToolCreatesMultiLineShape();
     void pagesPanelAddsAndNavigatesPages();
@@ -407,6 +410,55 @@ void UiTests::powerClipButtonGroupsSelection() {
 
     canvas->document().undoStack()->undo();
     QCOMPARE(layer->shapeCount(), size_t(2));
+}
+
+void UiTests::macroRecordingCapturesAndReplaysSteps() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *macroPanel = window.findChild<MacroPanel *>("MacroPanel");
+    QVERIFY(canvas && toolbox && macroPanel);
+    canvas->setFocus();
+
+    Layer *layer = canvas->document().activeLayer();
+    Shape *recorded = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(10, 10)));
+
+    QVERIFY(!canvas->isRecordingMacro());
+    canvas->startMacroRecording();
+    QVERIFY(canvas->isRecordingMacro());
+
+    canvas->setSelectionShadow(true);
+    QVERIFY(recorded->shadowEnabled);
+
+    canvas->stopMacroRecording(QStringLiteral("Style A"));
+    QVERIFY(!canvas->isRecordingMacro());
+    macroPanel->refresh();
+
+    QCOMPARE(canvas->document().macros().size(), size_t(1));
+    const Macro &macro = canvas->document().macros().front();
+    QCOMPARE(macro.name, QStringLiteral("Style A"));
+    QCOMPARE(macro.steps.size(), 1);
+    QCOMPARE(macro.steps.front().kind, MacroStep::Kind::SetShadow);
+    QVERIFY(macro.steps.front().enabled);
+
+    auto *list = macroPanel->findChild<QListWidget *>();
+    QVERIFY(list);
+    QCOMPARE(list->count(), 1);
+
+    // Rejouer sur une autre forme, non enregistrée pendant la capture.
+    Shape *other = layer->addShape(std::make_unique<RectShape>(QRectF(100, 100, 20, 20)));
+    QVERIFY(!other->shadowEnabled);
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(110, 110)));
+
+    canvas->playMacro(macro);
+    QVERIFY(other->shadowEnabled);
+
+    canvas->document().undoStack()->undo();
+    QVERIFY(!other->shadowEnabled);
 }
 
 void UiTests::multiLineTextBoundsTallerThanSingleLine() {
