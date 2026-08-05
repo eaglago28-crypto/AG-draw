@@ -53,6 +53,11 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     connect(m_gradientCheck, &QCheckBox::toggled, this, &PropertiesBar::gradientToggled);
     addWidget(m_gradientCheck);
 
+    m_contourCheck = new QCheckBox(tr("Contour"), this);
+    m_contourCheck->setEnabled(false);
+    connect(m_contourCheck, &QCheckBox::toggled, this, &PropertiesBar::contourToggled);
+    addWidget(m_contourCheck);
+
     addSeparator();
 
     addAlignButton(QStringLiteral("⟸"), tr("Aligner à gauche"), AlignMode::Left);
@@ -98,6 +103,7 @@ void PropertiesBar::setSelectedShape(engine::Shape *shape) {
     const QSignalBlocker strokeBlocker(m_strokeWidth);
     const QSignalBlocker shadowBlocker(m_shadowCheck);
     const QSignalBlocker gradientBlocker(m_gradientCheck);
+    const QSignalBlocker contourBlocker(m_contourCheck);
 
     if (shape) {
         m_strokeWidth->setEnabled(true);
@@ -108,12 +114,16 @@ void PropertiesBar::setSelectedShape(engine::Shape *shape) {
         m_shadowCheck->setChecked(shape->shadowEnabled);
         m_gradientCheck->setEnabled(supportsEffects);
         m_gradientCheck->setChecked(shape->gradientEnabled);
+        m_contourCheck->setEnabled(supportsEffects);
+        m_contourCheck->setChecked(shape->contourEnabled);
     } else {
         m_strokeWidth->setEnabled(false);
         m_shadowCheck->setEnabled(false);
         m_shadowCheck->setChecked(false);
         m_gradientCheck->setEnabled(false);
         m_gradientCheck->setChecked(false);
+        m_contourCheck->setEnabled(false);
+        m_contourCheck->setChecked(false);
     }
 }
 

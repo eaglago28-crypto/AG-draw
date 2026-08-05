@@ -37,6 +37,9 @@ private slots:
     void brushOutlineWidensWithPressure();
     void brushStrokeTranslateMovesAllPoints();
     void agdRoundTripPreservesBrushStroke();
+    void contourUndoRedo();
+    void interpolateColorMidpoint();
+    void agdRoundTripPreservesContour();
 };
 
 void EngineTests::addShapeUndo() {
@@ -360,6 +363,57 @@ void EngineTests::agdRoundTripPreservesBrushStroke() {
     QCOMPARE(brush->points.size(), 3);
     QCOMPARE(brush->points[1].point, QPointF(20, 5));
     QCOMPARE(brush->points[1].pressure, 0.9);
+}
+
+void EngineTests::contourUndoRedo() {
+    Document doc;
+    Shape *rect = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 10, 10)));
+    QVERIFY(rect->supportsFillEffects());
+    QVERIFY(!rect->contourEnabled);
+
+    doc.undoStack()->push(new SetContourCommand(rect, rect->contourEnabled, true));
+    QVERIFY(rect->contourEnabled);
+
+    doc.undoStack()->undo();
+    QVERIFY(!rect->contourEnabled);
+
+    doc.undoStack()->redo();
+    QVERIFY(rect->contourEnabled);
+}
+
+void EngineTests::interpolateColorMidpoint() {
+    const QColor result = interpolateColor(Qt::black, Qt::white, 0.5);
+    QVERIFY(result.red() >= 126 && result.red() <= 129);
+    QVERIFY(result.green() >= 126 && result.green() <= 129);
+    QVERIFY(result.blue() >= 126 && result.blue() <= 129);
+
+    QCOMPARE(interpolateColor(Qt::red, Qt::blue, 0.0), QColor(Qt::red));
+    QCOMPARE(interpolateColor(Qt::red, Qt::blue, 1.0), QColor(Qt::blue));
+}
+
+void EngineTests::agdRoundTripPreservesContour() {
+    Document doc;
+    auto *rect = static_cast<RectShape *>(doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40))));
+    rect->contourEnabled = true;
+    rect->contourSteps = 5;
+    rect->contourOffset = 6.0;
+    rect->contourColor = QColor(10, 200, 30);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("contour.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    Shape *loadedShape = loaded.activeLayer()->shapes().front().get();
+    QVERIFY(loadedShape->contourEnabled);
+    QCOMPARE(loadedShape->contourSteps, 5);
+    QCOMPARE(loadedShape->contourOffset, 6.0);
+    QCOMPARE(loadedShape->contourColor, QColor(10, 200, 30));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

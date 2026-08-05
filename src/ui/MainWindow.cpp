@@ -56,6 +56,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(m_propertiesBar, &PropertiesBar::strokeWidthEdited, m_canvas, &CanvasView::setSelectionStrokeWidth);
     connect(m_propertiesBar, &PropertiesBar::shadowToggled, m_canvas, &CanvasView::setSelectionShadow);
     connect(m_propertiesBar, &PropertiesBar::gradientToggled, m_canvas, &CanvasView::setSelectionGradient);
+    connect(m_propertiesBar, &PropertiesBar::contourToggled, m_canvas, &CanvasView::setSelectionContour);
     connect(m_propertiesBar, &PropertiesBar::alignRequested, m_canvas, &CanvasView::alignSelection);
     connect(m_propertiesBar, &PropertiesBar::distributeRequested, m_canvas, &CanvasView::distributeSelection);
     connect(m_canvas, &CanvasView::selectionCountChanged, m_propertiesBar, &PropertiesBar::setSelectionCount);

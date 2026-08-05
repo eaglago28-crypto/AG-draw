@@ -38,7 +38,7 @@ private slots:
     void toolShortcutSwitchesActiveTool();
     void zOrderShortcutsReorderShapes();
     void propertiesBarEditsStrokeWidth();
-    void propertiesBarTogglesShadowAndGradient();
+    void propertiesBarTogglesShadowGradientAndContour();
     void layersPanelTogglesVisibility();
     void alignSelectionAligns();
     void distributeSelectionSpacesEvenly();
@@ -121,7 +121,7 @@ void UiTests::propertiesBarEditsStrokeWidth() {
     QCOMPARE(shape->strokeWidth, 1.0);
 }
 
-void UiTests::propertiesBarTogglesShadowAndGradient() {
+void UiTests::propertiesBarTogglesShadowGradientAndContour() {
     MainWindow window;
     auto *canvas = window.findChild<CanvasView *>();
     auto *toolbox = window.findChild<ToolBox *>("ToolBox");
@@ -138,15 +138,18 @@ void UiTests::propertiesBarTogglesShadowAndGradient() {
     QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(150, 140));
 
     const auto checkBoxes = propertiesBar->findChildren<QCheckBox *>();
-    QCOMPARE(checkBoxes.size(), 2);
+    QCOMPARE(checkBoxes.size(), 3);
     QCheckBox *shadowCheck = checkBoxes[0];
     QCheckBox *gradientCheck = checkBoxes[1];
+    QCheckBox *contourCheck = checkBoxes[2];
     QVERIFY(shadowCheck->isEnabled());
     QVERIFY(gradientCheck->isEnabled());
+    QVERIFY(contourCheck->isEnabled());
 
     Shape *shape = canvas->document().activeLayer()->shapes().front().get();
     QVERIFY(!shape->shadowEnabled);
     QVERIFY(!shape->gradientEnabled);
+    QVERIFY(!shape->contourEnabled);
 
     shadowCheck->setChecked(true);
     QVERIFY(shape->shadowEnabled);
@@ -157,6 +160,11 @@ void UiTests::propertiesBarTogglesShadowAndGradient() {
     QVERIFY(shape->gradientEnabled);
     canvas->document().undoStack()->undo();
     QVERIFY(!shape->gradientEnabled);
+
+    contourCheck->setChecked(true);
+    QVERIFY(shape->contourEnabled);
+    canvas->document().undoStack()->undo();
+    QVERIFY(!shape->contourEnabled);
 }
 
 void UiTests::layersPanelTogglesVisibility() {

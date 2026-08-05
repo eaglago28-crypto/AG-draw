@@ -256,6 +256,28 @@ void CanvasView::setSelectionGradient(bool enabled) {
     m_documentItem->update();
 }
 
+void CanvasView::setSelectionContour(bool enabled) {
+    QVector<engine::Shape *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (shape->supportsFillEffects()) {
+            targets.append(shape);
+        }
+    }
+    if (targets.isEmpty()) {
+        return;
+    }
+    if (targets.size() == 1) {
+        m_document->undoStack()->push(new engine::SetContourCommand(targets.first(), targets.first()->contourEnabled, enabled));
+    } else {
+        m_document->undoStack()->beginMacro(tr("Contour"));
+        for (engine::Shape *shape : targets) {
+            m_document->undoStack()->push(new engine::SetContourCommand(shape, shape->contourEnabled, enabled));
+        }
+        m_document->undoStack()->endMacro();
+    }
+    m_documentItem->update();
+}
+
 void CanvasView::alignSelection(AlignMode mode) {
     if (m_selection.size() < 2) {
         return;

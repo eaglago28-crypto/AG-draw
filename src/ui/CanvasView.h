@@ -49,6 +49,7 @@ public slots:
     void setSelectionStrokeWidth(double width);
     void setSelectionShadow(bool enabled);
     void setSelectionGradient(bool enabled);
+    void setSelectionContour(bool enabled);
     void alignSelection(agdraw::ui::AlignMode mode);
     void distributeSelection(agdraw::ui::DistributeMode mode);
     void refreshView();

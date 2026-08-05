@@ -35,6 +35,11 @@ QJsonObject shapeCommonToJson(const engine::Shape &shape) {
     obj["gradientEnd"] = shape.gradientEndColor.name(QColor::HexArgb);
     obj["gradientAngle"] = shape.gradientAngle;
 
+    obj["contourEnabled"] = shape.contourEnabled;
+    obj["contourSteps"] = shape.contourSteps;
+    obj["contourOffset"] = shape.contourOffset;
+    obj["contourColor"] = shape.contourColor.name(QColor::HexArgb);
+
     return obj;
 }
 
@@ -67,6 +72,14 @@ void applyShapeCommon(engine::Shape &shape, const QJsonObject &obj) {
         shape.gradientEndColor = gradientEnd;
     }
     shape.gradientAngle = obj.value("gradientAngle").toDouble(shape.gradientAngle);
+
+    shape.contourEnabled = obj.value("contourEnabled").toBool(shape.contourEnabled);
+    shape.contourSteps = obj.value("contourSteps").toInt(shape.contourSteps);
+    shape.contourOffset = obj.value("contourOffset").toDouble(shape.contourOffset);
+    const QColor contourColor(obj.value("contourColor").toString());
+    if (contourColor.isValid()) {
+        shape.contourColor = contourColor;
+    }
 }
 
 QJsonObject rectToJson(const engine::RectShape &shape) {

@@ -41,11 +41,24 @@ public:
     QColor gradientStartColor = Qt::white;
     QColor gradientEndColor = Qt::gray;
     qreal gradientAngle = 0.0; // degrés, 0 = gauche → droite
+
+    // Contour (CorelDRAW) : copies concentriques du contour, dégradées de
+    // la couleur de remplissage vers contourColor. contourOffset positif
+    // fait grandir les copies vers l'extérieur, négatif vers l'intérieur.
+    bool contourEnabled = false;
+    int contourSteps = 4;
+    qreal contourOffset = 8.0;
+    QColor contourColor = Qt::black;
 };
 
 // Construit un dégradé linéaire couvrant `bounds`, orienté selon
 // `angleDegrees`. Partagé par les formes qui prennent en charge le
 // remplissage en dégradé.
 QLinearGradient makeShapeGradient(const QRectF &bounds, const QColor &start, const QColor &end, qreal angleDegrees);
+
+// Interpole linéairement entre deux couleurs (t=0 → a, t=1 → b), y compris
+// le canal alpha. Utilisé par l'effet Contour pour dégrader les copies
+// concentriques vers contourColor.
+QColor interpolateColor(const QColor &a, const QColor &b, qreal t);
 
 } // namespace agdraw::engine

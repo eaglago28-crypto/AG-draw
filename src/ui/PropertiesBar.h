@@ -34,6 +34,7 @@ signals:
     void strokeWidthEdited(double value);
     void shadowToggled(bool enabled);
     void gradientToggled(bool enabled);
+    void contourToggled(bool enabled);
     void alignRequested(agdraw::ui::AlignMode mode);
     void distributeRequested(agdraw::ui::DistributeMode mode);
 
@@ -45,6 +46,7 @@ private:
     QDoubleSpinBox *m_strokeWidth;
     QCheckBox *m_shadowCheck;
     QCheckBox *m_gradientCheck;
+    QCheckBox *m_contourCheck;
     QList<QToolButton *> m_alignButtons;
     QList<QToolButton *> m_distributeButtons;
 };

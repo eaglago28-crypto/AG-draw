@@ -119,6 +119,17 @@ void SetGradientCommand::undo() {
     m_shape->gradientEnabled = m_oldEnabled;
 }
 
+SetContourCommand::SetContourCommand(Shape *shape, bool oldEnabled, bool newEnabled)
+    : QUndoCommand(QObject::tr("Contour")), m_shape(shape), m_oldEnabled(oldEnabled), m_newEnabled(newEnabled) {}
+
+void SetContourCommand::redo() {
+    m_shape->contourEnabled = m_newEnabled;
+}
+
+void SetContourCommand::undo() {
+    m_shape->contourEnabled = m_oldEnabled;
+}
+
 AddPageCommand::AddPageCommand(Document *document, std::unique_ptr<Page> page, const QString &text)
     : QUndoCommand(text), m_document(document), m_page(std::move(page)), m_pagePtr(m_page.get()) {}
 

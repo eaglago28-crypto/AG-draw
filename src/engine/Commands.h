@@ -159,6 +159,20 @@ private:
     bool m_newEnabled;
 };
 
+// Active/désactive l'effet Contour (copies concentriques) d'une forme.
+class SetContourCommand : public QUndoCommand {
+public:
+    SetContourCommand(Shape *shape, bool oldEnabled, bool newEnabled);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    bool m_oldEnabled;
+    bool m_newEnabled;
+};
+
 // Ajoute une page déjà construite au document (annulable).
 class AddPageCommand : public QUndoCommand {
 public:
