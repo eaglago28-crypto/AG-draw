@@ -27,6 +27,35 @@ QVector<QPointF> defaultEnvelopeCorners(const QRectF &bounds) {
     return {bounds.topLeft(), bounds.topRight(), bounds.bottomRight(), bounds.bottomLeft()};
 }
 
+QPolygonF sampleRectOutline(const QRectF &rect, int subdivisionsPerEdge) {
+    QPolygonF outline;
+    auto addEdge = [&](const QPointF &a, const QPointF &b) {
+        for (int i = 0; i < subdivisionsPerEdge; ++i) {
+            const qreal t = static_cast<qreal>(i) / subdivisionsPerEdge;
+            outline.append(a + (b - a) * t);
+        }
+    };
+    addEdge(rect.topLeft(), rect.topRight());
+    addEdge(rect.topRight(), rect.bottomRight());
+    addEdge(rect.bottomRight(), rect.bottomLeft());
+    addEdge(rect.bottomLeft(), rect.topLeft());
+    return outline;
+}
+
+QPolygonF sampleEllipseOutline(const QRectF &rect, int samples) {
+    const QPointF center = rect.center();
+    const qreal rx = rect.width() / 2.0;
+    const qreal ry = rect.height() / 2.0;
+
+    QPolygonF outline;
+    outline.reserve(samples);
+    for (int i = 0; i < samples; ++i) {
+        const qreal angle = 2.0 * M_PI * i / samples;
+        outline.append(QPointF(center.x() + rx * std::cos(angle), center.y() + ry * std::sin(angle)));
+    }
+    return outline;
+}
+
 QPolygonF applyEnvelope(const QPolygonF &source, const QRectF &sourceBounds, const QVector<QPointF> &corners) {
     if (corners.size() != 4) {
         return source;

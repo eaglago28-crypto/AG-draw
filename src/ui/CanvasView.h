@@ -51,6 +51,7 @@ public slots:
     void setSelectionGradient(bool enabled);
     void setSelectionContour(bool enabled);
     void setSelectionEnvelope(bool enabled);
+    void setSelectionExtrusion(bool enabled);
     void alignSelection(agdraw::ui::AlignMode mode);
     void distributeSelection(agdraw::ui::DistributeMode mode);
     void blendSelection();

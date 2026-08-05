@@ -63,6 +63,11 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     connect(m_envelopeCheck, &QCheckBox::toggled, this, &PropertiesBar::envelopeToggled);
     addWidget(m_envelopeCheck);
 
+    m_extrusionCheck = new QCheckBox(tr("Extrusion"), this);
+    m_extrusionCheck->setEnabled(false);
+    connect(m_extrusionCheck, &QCheckBox::toggled, this, &PropertiesBar::extrusionToggled);
+    addWidget(m_extrusionCheck);
+
     addSeparator();
 
     addAlignButton(QStringLiteral("⟸"), tr("Aligner à gauche"), AlignMode::Left);
@@ -119,6 +124,7 @@ void PropertiesBar::setSelectedShape(engine::Shape *shape) {
     const QSignalBlocker gradientBlocker(m_gradientCheck);
     const QSignalBlocker contourBlocker(m_contourCheck);
     const QSignalBlocker envelopeBlocker(m_envelopeCheck);
+    const QSignalBlocker extrusionBlocker(m_extrusionCheck);
 
     if (shape) {
         m_strokeWidth->setEnabled(true);
@@ -133,6 +139,8 @@ void PropertiesBar::setSelectedShape(engine::Shape *shape) {
         m_contourCheck->setChecked(shape->contourEnabled);
         m_envelopeCheck->setEnabled(supportsEffects);
         m_envelopeCheck->setChecked(shape->envelopeEnabled);
+        m_extrusionCheck->setEnabled(supportsEffects);
+        m_extrusionCheck->setChecked(shape->extrusionEnabled);
     } else {
         m_strokeWidth->setEnabled(false);
         m_shadowCheck->setEnabled(false);
@@ -143,6 +151,8 @@ void PropertiesBar::setSelectedShape(engine::Shape *shape) {
         m_contourCheck->setChecked(false);
         m_envelopeCheck->setEnabled(false);
         m_envelopeCheck->setChecked(false);
+        m_extrusionCheck->setEnabled(false);
+        m_extrusionCheck->setChecked(false);
     }
 }
 

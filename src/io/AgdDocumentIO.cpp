@@ -52,6 +52,11 @@ QJsonObject shapeCommonToJson(const engine::Shape &shape) {
         obj["envelopeCorners"] = corners;
     }
 
+    obj["extrusionEnabled"] = shape.extrusionEnabled;
+    obj["extrusionDepth"] = shape.extrusionDepth;
+    obj["extrusionAngle"] = shape.extrusionAngle;
+    obj["extrusionColor"] = shape.extrusionColor.name(QColor::HexArgb);
+
     return obj;
 }
 
@@ -102,6 +107,14 @@ void applyShapeCommon(engine::Shape &shape, const QJsonObject &obj) {
             corners.append(QPointF(cornerObj.value("x").toDouble(), cornerObj.value("y").toDouble()));
         }
         shape.envelopeCorners = corners;
+    }
+
+    shape.extrusionEnabled = obj.value("extrusionEnabled").toBool(shape.extrusionEnabled);
+    shape.extrusionDepth = obj.value("extrusionDepth").toDouble(shape.extrusionDepth);
+    shape.extrusionAngle = obj.value("extrusionAngle").toDouble(shape.extrusionAngle);
+    const QColor extrusionColor(obj.value("extrusionColor").toString());
+    if (extrusionColor.isValid()) {
+        shape.extrusionColor = extrusionColor;
     }
 }
 

@@ -158,6 +158,17 @@ void SetEnvelopeCornersCommand::undo() {
     m_shape->envelopeCorners = m_oldCorners;
 }
 
+SetExtrusionCommand::SetExtrusionCommand(Shape *shape, bool oldEnabled, bool newEnabled)
+    : QUndoCommand(QObject::tr("Extrusion")), m_shape(shape), m_oldEnabled(oldEnabled), m_newEnabled(newEnabled) {}
+
+void SetExtrusionCommand::redo() {
+    m_shape->extrusionEnabled = m_newEnabled;
+}
+
+void SetExtrusionCommand::undo() {
+    m_shape->extrusionEnabled = m_oldEnabled;
+}
+
 AddPageCommand::AddPageCommand(Document *document, std::unique_ptr<Page> page, const QString &text)
     : QUndoCommand(text), m_document(document), m_page(std::move(page)), m_pagePtr(m_page.get()) {}
 

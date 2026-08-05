@@ -45,6 +45,8 @@ private slots:
     void envelopeUndoRedo();
     void applyEnvelopeIdentityAndWarp();
     void agdRoundTripPreservesEnvelope();
+    void extrusionUndoRedo();
+    void agdRoundTripPreservesExtrusion();
 };
 
 void EngineTests::addShapeUndo() {
@@ -500,6 +502,46 @@ void EngineTests::agdRoundTripPreservesEnvelope() {
     QCOMPARE(loadedShape->envelopeCorners[1], QPointF(38, -4));
     QCOMPARE(loadedShape->envelopeCorners[2], QPointF(40, 40));
     QCOMPARE(loadedShape->envelopeCorners[3], QPointF(0, 40));
+}
+
+void EngineTests::extrusionUndoRedo() {
+    Document doc;
+    Shape *rect = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+    QVERIFY(!rect->extrusionEnabled);
+
+    doc.undoStack()->push(new SetExtrusionCommand(rect, rect->extrusionEnabled, true));
+    QVERIFY(rect->extrusionEnabled);
+
+    doc.undoStack()->undo();
+    QVERIFY(!rect->extrusionEnabled);
+
+    doc.undoStack()->redo();
+    QVERIFY(rect->extrusionEnabled);
+}
+
+void EngineTests::agdRoundTripPreservesExtrusion() {
+    Document doc;
+    auto *rect = static_cast<RectShape *>(doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40))));
+    rect->extrusionEnabled = true;
+    rect->extrusionDepth = 15.0;
+    rect->extrusionAngle = 30.0;
+    rect->extrusionColor = QColor(50, 60, 70);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("extrusion.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    Shape *loadedShape = loaded.activeLayer()->shapes().front().get();
+    QVERIFY(loadedShape->extrusionEnabled);
+    QCOMPARE(loadedShape->extrusionDepth, 15.0);
+    QCOMPARE(loadedShape->extrusionAngle, 30.0);
+    QCOMPARE(loadedShape->extrusionColor, QColor(50, 60, 70));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

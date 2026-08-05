@@ -22,23 +22,32 @@ void EllipseShape::paint(QPainter &painter) const {
     }
 
     if (envelopeEnabled && envelopeCorners.size() == 4) {
-        constexpr int kSamples = 64;
-        const QPointF center = r.center();
-        const qreal rx = r.width() / 2.0;
-        const qreal ry = r.height() / 2.0;
+        painter.setPen(QPen(strokeColor, strokeWidth));
+        painter.setBrush(gradientEnabled
+                              ? QBrush(makeShapeGradient(r, gradientStartColor, gradientEndColor, gradientAngle))
+                              : QBrush(fillColor));
+        painter.drawPolygon(applyEnvelope(sampleEllipseOutline(r), r, envelopeCorners));
+        return;
+    }
 
-        QPolygonF outline;
-        outline.reserve(kSamples);
-        for (int i = 0; i < kSamples; ++i) {
-            const qreal angle = 2.0 * M_PI * i / kSamples;
-            outline.append(QPointF(center.x() + rx * std::cos(angle), center.y() + ry * std::sin(angle)));
+    if (extrusionEnabled) {
+        const qreal radians = qDegreesToRadians(extrusionAngle);
+        const QPointF depth(extrusionDepth * std::cos(radians), extrusionDepth * std::sin(radians));
+        const QPolygonF outline = sampleEllipseOutline(r);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(extrusionColor);
+        for (int i = 0; i < outline.size(); ++i) {
+            const QPointF &a = outline[i];
+            const QPointF &b = outline[(i + 1) % outline.size()];
+            painter.drawPolygon(QPolygonF{a, b, b + depth, a + depth});
         }
 
         painter.setPen(QPen(strokeColor, strokeWidth));
         painter.setBrush(gradientEnabled
                               ? QBrush(makeShapeGradient(r, gradientStartColor, gradientEndColor, gradientAngle))
                               : QBrush(fillColor));
-        painter.drawPolygon(applyEnvelope(outline, r, envelopeCorners));
+        painter.drawEllipse(r);
         return;
     }
 

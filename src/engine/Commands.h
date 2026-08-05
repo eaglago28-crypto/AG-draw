@@ -206,6 +206,20 @@ private:
     QVector<QPointF> m_newCorners;
 };
 
+// Active/désactive l'effet Extrusion (relief 3D simulé) d'une forme.
+class SetExtrusionCommand : public QUndoCommand {
+public:
+    SetExtrusionCommand(Shape *shape, bool oldEnabled, bool newEnabled);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    bool m_oldEnabled;
+    bool m_newEnabled;
+};
+
 // Ajoute une page déjà construite au document (annulable).
 class AddPageCommand : public QUndoCommand {
 public:

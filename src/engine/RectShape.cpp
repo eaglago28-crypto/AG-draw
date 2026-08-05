@@ -1,6 +1,7 @@
 #include "RectShape.h"
 
 #include <QPainter>
+#include <QtMath>
 
 namespace agdraw::engine {
 
@@ -14,24 +15,32 @@ void RectShape::paint(QPainter &painter) const {
     }
 
     if (envelopeEnabled && envelopeCorners.size() == 4) {
-        constexpr int kSubdivisions = 24;
-        QPolygonF outline;
-        auto addEdge = [&](const QPointF &a, const QPointF &b) {
-            for (int i = 0; i < kSubdivisions; ++i) {
-                const qreal t = static_cast<qreal>(i) / kSubdivisions;
-                outline.append(a + (b - a) * t);
-            }
-        };
-        addEdge(r.topLeft(), r.topRight());
-        addEdge(r.topRight(), r.bottomRight());
-        addEdge(r.bottomRight(), r.bottomLeft());
-        addEdge(r.bottomLeft(), r.topLeft());
+        painter.setPen(QPen(strokeColor, strokeWidth));
+        painter.setBrush(gradientEnabled
+                              ? QBrush(makeShapeGradient(r, gradientStartColor, gradientEndColor, gradientAngle))
+                              : QBrush(fillColor));
+        painter.drawPolygon(applyEnvelope(sampleRectOutline(r), r, envelopeCorners));
+        return;
+    }
+
+    if (extrusionEnabled) {
+        const qreal radians = qDegreesToRadians(extrusionAngle);
+        const QPointF depth(extrusionDepth * std::cos(radians), extrusionDepth * std::sin(radians));
+        const QPolygonF outline = sampleRectOutline(r);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(extrusionColor);
+        for (int i = 0; i < outline.size(); ++i) {
+            const QPointF &a = outline[i];
+            const QPointF &b = outline[(i + 1) % outline.size()];
+            painter.drawPolygon(QPolygonF{a, b, b + depth, a + depth});
+        }
 
         painter.setPen(QPen(strokeColor, strokeWidth));
         painter.setBrush(gradientEnabled
                               ? QBrush(makeShapeGradient(r, gradientStartColor, gradientEndColor, gradientAngle))
                               : QBrush(fillColor));
-        painter.drawPolygon(applyEnvelope(outline, r, envelopeCorners));
+        painter.drawRect(r);
         return;
     }
 

@@ -58,6 +58,14 @@ public:
     // activé ; initialisé aux coins de bounds() à l'activation.
     bool envelopeEnabled = false;
     QVector<QPointF> envelopeCorners;
+
+    // Extrusion (CorelDRAW) : simule un relief 3D en tirant une copie du
+    // contour vers extrusionDepth/extrusionAngle et en remplissant les
+    // faces latérales ainsi créées avec extrusionColor.
+    bool extrusionEnabled = false;
+    qreal extrusionDepth = 20.0;
+    qreal extrusionAngle = -45.0; // degrés, 0 = droite, sens trigonométrique
+    QColor extrusionColor = QColor(90, 90, 90);
 };
 
 // Coins par défaut (haut-gauche, haut-droite, bas-droite, bas-gauche) d'un
@@ -68,6 +76,17 @@ QVector<QPointF> defaultEnvelopeCorners(const QRectF &bounds);
 // tirant chaque point vers le quadrilatère `corners` (4 points, même ordre
 // que defaultEnvelopeCorners) par interpolation bilinéaire.
 QPolygonF applyEnvelope(const QPolygonF &source, const QRectF &sourceBounds, const QVector<QPointF> &corners);
+
+// Échantillonne le contour d'un rectangle en `subdivisionsPerEdge` segments
+// par côté (contour fermé, dans l'ordre haut-gauche → haut-droite →
+// bas-droite → bas-gauche). Partagé par l'Enveloppe et l'Extrusion, qui ont
+// besoin d'un polygone plutôt que d'un simple QRectF pour se déformer/
+// projeter point par point.
+QPolygonF sampleRectOutline(const QRectF &rect, int subdivisionsPerEdge = 24);
+
+// Échantillonne le contour d'une ellipse en `samples` points paramétriques
+// régulièrement espacés en angle.
+QPolygonF sampleEllipseOutline(const QRectF &rect, int samples = 64);
 
 // Construit un dégradé linéaire couvrant `bounds`, orienté selon
 // `angleDegrees`. Partagé par les formes qui prennent en charge le

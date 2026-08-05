@@ -36,6 +36,7 @@ signals:
     void gradientToggled(bool enabled);
     void contourToggled(bool enabled);
     void envelopeToggled(bool enabled);
+    void extrusionToggled(bool enabled);
     void alignRequested(agdraw::ui::AlignMode mode);
     void distributeRequested(agdraw::ui::DistributeMode mode);
     void blendRequested();
@@ -50,6 +51,7 @@ private:
     QCheckBox *m_gradientCheck;
     QCheckBox *m_contourCheck;
     QCheckBox *m_envelopeCheck;
+    QCheckBox *m_extrusionCheck;
     QList<QToolButton *> m_alignButtons;
     QList<QToolButton *> m_distributeButtons;
     QToolButton *m_blendButton;

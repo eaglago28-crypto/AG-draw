@@ -38,7 +38,7 @@ private slots:
     void toolShortcutSwitchesActiveTool();
     void zOrderShortcutsReorderShapes();
     void propertiesBarEditsStrokeWidth();
-    void propertiesBarTogglesShadowGradientContourAndEnvelope();
+    void propertiesBarTogglesAllShapeEffects();
     void layersPanelTogglesVisibility();
     void alignSelectionAligns();
     void distributeSelectionSpacesEvenly();
@@ -123,7 +123,7 @@ void UiTests::propertiesBarEditsStrokeWidth() {
     QCOMPARE(shape->strokeWidth, 1.0);
 }
 
-void UiTests::propertiesBarTogglesShadowGradientContourAndEnvelope() {
+void UiTests::propertiesBarTogglesAllShapeEffects() {
     MainWindow window;
     auto *canvas = window.findChild<CanvasView *>();
     auto *toolbox = window.findChild<ToolBox *>("ToolBox");
@@ -140,21 +140,24 @@ void UiTests::propertiesBarTogglesShadowGradientContourAndEnvelope() {
     QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(150, 140));
 
     const auto checkBoxes = propertiesBar->findChildren<QCheckBox *>();
-    QCOMPARE(checkBoxes.size(), 4);
+    QCOMPARE(checkBoxes.size(), 5);
     QCheckBox *shadowCheck = checkBoxes[0];
     QCheckBox *gradientCheck = checkBoxes[1];
     QCheckBox *contourCheck = checkBoxes[2];
     QCheckBox *envelopeCheck = checkBoxes[3];
+    QCheckBox *extrusionCheck = checkBoxes[4];
     QVERIFY(shadowCheck->isEnabled());
     QVERIFY(gradientCheck->isEnabled());
     QVERIFY(contourCheck->isEnabled());
     QVERIFY(envelopeCheck->isEnabled());
+    QVERIFY(extrusionCheck->isEnabled());
 
     Shape *shape = canvas->document().activeLayer()->shapes().front().get();
     QVERIFY(!shape->shadowEnabled);
     QVERIFY(!shape->gradientEnabled);
     QVERIFY(!shape->contourEnabled);
     QVERIFY(!shape->envelopeEnabled);
+    QVERIFY(!shape->extrusionEnabled);
 
     shadowCheck->setChecked(true);
     QVERIFY(shape->shadowEnabled);
@@ -176,6 +179,11 @@ void UiTests::propertiesBarTogglesShadowGradientContourAndEnvelope() {
     QCOMPARE(shape->envelopeCorners.size(), 4); // initialisés aux coins de bounds()
     canvas->document().undoStack()->undo();
     QVERIFY(!shape->envelopeEnabled);
+
+    extrusionCheck->setChecked(true);
+    QVERIFY(shape->extrusionEnabled);
+    canvas->document().undoStack()->undo();
+    QVERIFY(!shape->extrusionEnabled);
 }
 
 void UiTests::layersPanelTogglesVisibility() {

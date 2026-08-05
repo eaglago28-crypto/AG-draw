@@ -58,6 +58,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(m_propertiesBar, &PropertiesBar::gradientToggled, m_canvas, &CanvasView::setSelectionGradient);
     connect(m_propertiesBar, &PropertiesBar::contourToggled, m_canvas, &CanvasView::setSelectionContour);
     connect(m_propertiesBar, &PropertiesBar::envelopeToggled, m_canvas, &CanvasView::setSelectionEnvelope);
+    connect(m_propertiesBar, &PropertiesBar::extrusionToggled, m_canvas, &CanvasView::setSelectionExtrusion);
     connect(m_propertiesBar, &PropertiesBar::alignRequested, m_canvas, &CanvasView::alignSelection);
     connect(m_propertiesBar, &PropertiesBar::distributeRequested, m_canvas, &CanvasView::distributeSelection);
     connect(m_propertiesBar, &PropertiesBar::blendRequested, m_canvas, &CanvasView::blendSelection);

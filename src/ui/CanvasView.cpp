@@ -308,6 +308,29 @@ void CanvasView::setSelectionEnvelope(bool enabled) {
     m_documentItem->update();
 }
 
+void CanvasView::setSelectionExtrusion(bool enabled) {
+    QVector<engine::Shape *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (shape->supportsFillEffects()) {
+            targets.append(shape);
+        }
+    }
+    if (targets.isEmpty()) {
+        return;
+    }
+    if (targets.size() == 1) {
+        m_document->undoStack()->push(
+            new engine::SetExtrusionCommand(targets.first(), targets.first()->extrusionEnabled, enabled));
+    } else {
+        m_document->undoStack()->beginMacro(tr("Extrusion"));
+        for (engine::Shape *shape : targets) {
+            m_document->undoStack()->push(new engine::SetExtrusionCommand(shape, shape->extrusionEnabled, enabled));
+        }
+        m_document->undoStack()->endMacro();
+    }
+    m_documentItem->update();
+}
+
 void CanvasView::alignSelection(AlignMode mode) {
     if (m_selection.size() < 2) {
         return;
