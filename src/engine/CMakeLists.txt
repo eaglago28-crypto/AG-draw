@@ -1,0 +1,18 @@
+find_package(Qt6 REQUIRED COMPONENTS Gui)
+
+add_library(ag_engine STATIC
+    Shape.h
+    RectShape.h
+    RectShape.cpp
+    EllipseShape.h
+    EllipseShape.cpp
+    PathShape.h
+    PathShape.cpp
+    Layer.h
+    Layer.cpp
+    Document.h
+    Document.cpp
+)
+
+target_include_directories(ag_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ag_engine PUBLIC Qt6::Gui)

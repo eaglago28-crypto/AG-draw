@@ -7,6 +7,8 @@ add_library(ag_ui STATIC
     SplashScreen.h
     CanvasView.cpp
     CanvasView.h
+    DocumentItem.cpp
+    DocumentItem.h
     ToolBox.cpp
     ToolBox.h
     PropertiesBar.cpp
@@ -18,4 +20,4 @@ add_library(ag_ui STATIC
 )
 
 target_include_directories(ag_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ag_ui PUBLIC Qt6::Widgets)
+target_link_libraries(ag_ui PUBLIC Qt6::Widgets ag_engine)

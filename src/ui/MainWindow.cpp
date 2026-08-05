@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     m_propertiesBar = new PropertiesBar(this);
     addToolBar(Qt::TopToolBarArea, m_propertiesBar);
     connect(m_toolBox, &ToolBox::toolSelected, m_propertiesBar, &PropertiesBar::setActiveTool);
+    connect(m_toolBox, &ToolBox::toolSelected, m_canvas, &CanvasView::setActiveTool);
 
     m_colorPalette = new ColorPalette(this);
     addToolBar(Qt::RightToolBarArea, m_colorPalette);
@@ -32,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     connect(m_colorPalette, &ColorPalette::colorSelected, this, [this](const QColor &color) {
         statusBar()->showMessage(tr("Couleur sélectionnée : %1").arg(color.name()), 3000);
+    });
+    connect(m_canvas, &CanvasView::statusMessage, this, [this](const QString &text) {
+        statusBar()->showMessage(text, 3000);
     });
 
     statusBar()->showMessage(tr("Prêt"));
