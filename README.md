@@ -60,13 +60,15 @@ utilisent automatiquement `QT_QPA_PLATFORM=offscreen` (configuré dans
 
 ## Statut
 
-Étape 4 franchie : moteur de dessin (rendu QPainter, en attendant Skia),
-outils Sélection/Rectangle/Ellipse/Texte/Plume (avec courbes de Bézier),
-annuler/rétablir, redimensionnement, multi-sélection, ordre des plans,
-sauvegarde/chargement au format natif `.agd`, export PNG, calques avec
-visibilité/verrouillage réels, et effets (ombre portée, dégradé linéaire)
-sur Rectangle/Ellipse. Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-pour la feuille de route complète et les étapes à venir.
+Étape 4 franchie, plus deux chantiers de parité avec CorelDRAW : moteur de
+dessin (rendu QPainter, en attendant Skia), outils
+Sélection/Rectangle/Ellipse/Texte (multi-lignes)/Plume (avec courbes de
+Bézier), annuler/rétablir, redimensionnement, multi-sélection,
+alignement/distribution, ordre des plans, sauvegarde/chargement au format
+natif `.agd`, export PNG, calques avec visibilité/verrouillage réels,
+effets (ombre portée, dégradé linéaire), et documents multi-pages. Voir
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
+complète et les étapes à venir.
 
 ## Licence
 
