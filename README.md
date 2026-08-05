@@ -67,7 +67,7 @@ Bézier)/Pinceau (pression de tablette graphique), annuler/rétablir,
 redimensionnement, multi-sélection, alignement/distribution, ordre des
 plans, sauvegarde/chargement au format natif `.agd`, export PNG, calques
 avec visibilité/verrouillage réels, effets (ombre portée, dégradé
-linéaire), et documents multi-pages. Voir
+linéaire, contour à anneaux concentriques), et documents multi-pages. Voir
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
 complète et les étapes à venir.
 
