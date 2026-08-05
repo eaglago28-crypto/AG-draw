@@ -20,7 +20,49 @@ C++ (C++20) · Qt 6 · Skia · Git
 Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour le détail des modules, des
 écrans et de la feuille de route.
 
+## Compiler et lancer
+
+### Prérequis
+
+- CMake ≥ 3.21
+- Un compilateur C++20 (GCC, Clang ou MSVC)
+- Qt 6 (module de base *Widgets* ; *Test* en plus pour les tests)
+
+Sur Debian/Ubuntu :
+
+```bash
+sudo apt install qt6-base-dev qt6-base-dev-tools
+```
+
+### Configurer et compiler
+
+```bash
+cmake -S . -B build
+cmake --build build -j"$(nproc)"
+```
+
+### Lancer l'application
+
+```bash
+./build/apps/agdraw/agdraw
+```
+
+### Exécuter les tests
+
+```bash
+cd build
+ctest --output-on-failure
+```
+
+Sur une machine sans affichage (CI, conteneur headless), les tests d'interface
+utilisent automatiquement `QT_QPA_PLATFORM=offscreen` (configuré dans
+`tests/ui/CMakeLists.txt`).
+
 ## Statut
 
-Phase 1 : Fondation — conception de l'architecture et mise en place du squelette de
-projet. Aucun outil de dessin n'est encore implémenté.
+Étape 3 franchie : moteur de dessin (rendu QPainter, en attendant Skia),
+outils Sélection/Rectangle/Ellipse/Texte/Plume (avec courbes de Bézier),
+annuler/rétablir, redimensionnement, multi-sélection, ordre des plans,
+sauvegarde/chargement au format natif `.agd` et export PNG. Voir
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
+complète et les étapes à venir.
