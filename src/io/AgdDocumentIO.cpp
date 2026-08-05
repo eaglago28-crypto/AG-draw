@@ -1,5 +1,6 @@
 #include "AgdDocumentIO.h"
 
+#include "BrushStroke.h"
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
@@ -114,6 +115,22 @@ QJsonObject textToJson(const engine::TextShape &shape) {
     return obj;
 }
 
+QJsonObject brushToJson(const engine::BrushStroke &shape) {
+    QJsonObject obj = shapeCommonToJson(shape);
+    obj["type"] = "brush";
+    obj["baseWidth"] = shape.baseWidth;
+    QJsonArray points;
+    for (const engine::BrushPoint &point : shape.points) {
+        QJsonObject pointObj;
+        pointObj["x"] = point.point.x();
+        pointObj["y"] = point.point.y();
+        pointObj["pressure"] = point.pressure;
+        points.append(pointObj);
+    }
+    obj["points"] = points;
+    return obj;
+}
+
 QJsonObject shapeToJson(const engine::Shape &shape) {
     if (const auto *rect = dynamic_cast<const engine::RectShape *>(&shape)) {
         return rectToJson(*rect);
@@ -126,6 +143,9 @@ QJsonObject shapeToJson(const engine::Shape &shape) {
     }
     if (const auto *text = dynamic_cast<const engine::TextShape *>(&shape)) {
         return textToJson(*text);
+    }
+    if (const auto *brush = dynamic_cast<const engine::BrushStroke *>(&shape)) {
+        return brushToJson(*brush);
     }
     return {};
 }
@@ -152,6 +172,14 @@ std::unique_ptr<engine::Shape> shapeFromJson(const QJsonObject &obj) {
         shape = std::make_unique<engine::TextShape>(QPointF(obj.value("x").toDouble(), obj.value("y").toDouble()),
                                                       obj.value("text").toString());
         static_cast<engine::TextShape *>(shape.get())->fontPointSize = obj.value("fontSize").toDouble(24.0);
+    } else if (type == QLatin1String("brush")) {
+        QVector<engine::BrushPoint> points;
+        for (const QJsonValue &value : obj.value("points").toArray()) {
+            const QJsonObject pointObj = value.toObject();
+            points.append(engine::BrushPoint{QPointF(pointObj.value("x").toDouble(), pointObj.value("y").toDouble()),
+                                              pointObj.value("pressure").toDouble(1.0)});
+        }
+        shape = std::make_unique<engine::BrushStroke>(points, obj.value("baseWidth").toDouble(8.0));
     }
 
     if (shape) {

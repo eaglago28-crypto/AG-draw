@@ -18,6 +18,7 @@ ToolBox::ToolBox(QWidget *parent) : QToolBar(tr("Outils"), parent) {
     addTool(tr("Ellipse"), Tool::Ellipse, group);
     addTool(tr("Texte"), Tool::Text, group);
     addTool(tr("Plume"), Tool::Pen, group);
+    addTool(tr("Pinceau"), Tool::Brush, group);
 }
 
 QAction *ToolBox::addTool(const QString &text, Tool tool, QActionGroup *group) {

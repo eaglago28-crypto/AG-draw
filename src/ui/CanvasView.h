@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "Arrange.h"
+#include "BrushStroke.h"
 #include "PathShape.h"
 #include "ToolBox.h"
 
@@ -67,6 +68,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+    void tabletEvent(QTabletEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
@@ -80,6 +82,7 @@ private:
     void cancelTextEditor();
     void setSelection(QVector<agdraw::engine::Shape *> newSelection);
     void reorderSelection(bool forward, bool toExtreme);
+    void commitBrushStroke();
 
     std::unique_ptr<agdraw::engine::Document> m_document;
     DocumentItem *m_documentItem = nullptr;
@@ -120,6 +123,11 @@ private:
     // courbe de Bézier) en attente de validation par double-clic.
     QVector<agdraw::engine::PathNode> m_penNodes;
     bool m_penDraggingHandle = false;
+
+    // Pinceau : points échantillonnés (position + pression) pendant le
+    // geste en cours (souris ou stylet de tablette graphique).
+    QVector<agdraw::engine::BrushPoint> m_brushPoints;
+    bool m_brushDragging = false;
 
     QPlainTextEdit *m_textEditor = nullptr;
     QPointF m_textEditorScenePos;

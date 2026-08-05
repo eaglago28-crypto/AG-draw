@@ -11,6 +11,8 @@ add_library(ag_engine STATIC
     PathShape.cpp
     TextShape.h
     TextShape.cpp
+    BrushStroke.h
+    BrushStroke.cpp
     Layer.h
     Layer.cpp
     Page.h

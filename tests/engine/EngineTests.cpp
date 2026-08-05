@@ -2,6 +2,7 @@
 #include <QTest>
 
 #include "AgdDocumentIO.h"
+#include "BrushStroke.h"
 #include "Commands.h"
 #include "Document.h"
 #include "EllipseShape.h"
@@ -33,6 +34,9 @@ private slots:
     void addPageUndoRedo();
     void removePageUndoRestoresPosition();
     void agdRoundTripPreservesPages();
+    void brushOutlineWidensWithPressure();
+    void brushStrokeTranslateMovesAllPoints();
+    void agdRoundTripPreservesBrushStroke();
 };
 
 void EngineTests::addShapeUndo() {
@@ -310,6 +314,52 @@ void EngineTests::agdRoundTripPreservesPages() {
     QCOMPARE(loaded.pages()[0]->rect(), QRectF(0, 0, 794, 1123));
     QCOMPARE(loaded.pages()[1]->name(), QStringLiteral("Intérieur"));
     QCOMPARE(loaded.pages()[1]->rect(), QRectF(0, 1200, 1000, 700));
+}
+
+void EngineTests::brushOutlineWidensWithPressure() {
+    const QVector<BrushPoint> lightPoints = {BrushPoint{QPointF(0, 0), 0.2}, BrushPoint{QPointF(100, 0), 0.2}};
+    const QVector<BrushPoint> heavyPoints = {BrushPoint{QPointF(0, 0), 1.0}, BrushPoint{QPointF(100, 0), 1.0}};
+
+    BrushStroke light(lightPoints, 10.0);
+    BrushStroke heavy(heavyPoints, 10.0);
+
+    QVERIFY(heavy.bounds().height() > light.bounds().height());
+}
+
+void EngineTests::brushStrokeTranslateMovesAllPoints() {
+    const QVector<BrushPoint> points = {BrushPoint{QPointF(0, 0), 1.0}, BrushPoint{QPointF(10, 10), 1.0}};
+    BrushStroke stroke(points);
+    stroke.translate(QPointF(5, 5));
+
+    QCOMPARE(stroke.points[0].point, QPointF(5, 5));
+    QCOMPARE(stroke.points[1].point, QPointF(15, 15));
+}
+
+void EngineTests::agdRoundTripPreservesBrushStroke() {
+    Document doc;
+    const QVector<BrushPoint> points = {
+        BrushPoint{QPointF(0, 0), 0.3},
+        BrushPoint{QPointF(20, 5), 0.9},
+        BrushPoint{QPointF(40, 0), 0.5},
+    };
+    doc.activeLayer()->addShape(std::make_unique<BrushStroke>(points, 12.0));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("brush.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    auto *brush = dynamic_cast<BrushStroke *>(loaded.activeLayer()->shapes().front().get());
+    QVERIFY(brush);
+    QCOMPARE(brush->baseWidth, 12.0);
+    QCOMPARE(brush->points.size(), 3);
+    QCOMPARE(brush->points[1].point, QPointF(20, 5));
+    QCOMPARE(brush->points[1].pressure, 0.9);
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

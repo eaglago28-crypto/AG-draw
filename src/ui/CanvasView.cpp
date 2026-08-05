@@ -1,6 +1,7 @@
 #include "CanvasView.h"
 
 #include "AgdDocumentIO.h"
+#include "BrushStroke.h"
 #include "Commands.h"
 #include "Document.h"
 #include "DocumentItem.h"
@@ -20,6 +21,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QScrollBar>
+#include <QTabletEvent>
 #include <QUndoStack>
 #include <QWheelEvent>
 
@@ -79,6 +81,8 @@ void CanvasView::setupTextEditor() {
 void CanvasView::setActiveTool(Tool tool) {
     m_penNodes.clear();
     m_penDraggingHandle = false;
+    m_brushPoints.clear();
+    m_brushDragging = false;
     m_rubberBanding = false;
     m_resizing = false;
     m_dragging = false;
@@ -96,7 +100,7 @@ void CanvasView::setActiveColor(const QColor &color) {
     if (!m_selection.isEmpty()) {
         m_document->undoStack()->beginMacro(tr("Couleur"));
         for (engine::Shape *shape : m_selection) {
-            if (dynamic_cast<engine::PathShape *>(shape)) {
+            if (dynamic_cast<engine::PathShape *>(shape) || dynamic_cast<engine::BrushStroke *>(shape)) {
                 m_document->undoStack()->push(new engine::SetStrokeColorCommand(shape, shape->strokeColor, color));
             } else {
                 m_document->undoStack()->push(new engine::SetFillColorCommand(shape, shape->fillColor, color));
@@ -109,7 +113,7 @@ void CanvasView::setActiveColor(const QColor &color) {
 }
 
 void CanvasView::applyCurrentColor(engine::Shape *shape) const {
-    if (dynamic_cast<engine::PathShape *>(shape)) {
+    if (dynamic_cast<engine::PathShape *>(shape) || dynamic_cast<engine::BrushStroke *>(shape)) {
         shape->strokeColor = m_currentColor;
     } else {
         shape->fillColor = m_currentColor;
@@ -470,6 +474,14 @@ void CanvasView::drawForeground(QPainter *painter, const QRectF &) {
             }
         }
     }
+
+    if (m_brushDragging && m_brushPoints.size() >= 2) {
+        painter->setPen(Qt::NoPen);
+        QColor previewColor = m_currentColor;
+        previewColor.setAlpha(180);
+        painter->setBrush(previewColor);
+        painter->drawPath(engine::buildBrushOutline(m_brushPoints, 8.0));
+    }
 }
 
 QRectF CanvasView::computeResizedBounds(const QPointF &scenePos) const {
@@ -597,6 +609,12 @@ void CanvasView::mousePressEvent(QMouseEvent *event) {
             emit statusMessage(tr("Texte : Entrée valide, Maj+Entrée pour une nouvelle ligne, Échap annule"));
             break;
         }
+        case Tool::Brush:
+            m_brushPoints.clear();
+            m_brushPoints.append(engine::BrushPoint{scenePos, 1.0});
+            m_brushDragging = true;
+            emit statusMessage(tr("Pinceau : glissez pour tracer (souris = pression constante)"));
+            break;
     }
 
     m_documentItem->update();
@@ -639,6 +657,13 @@ void CanvasView::mouseMoveEvent(QMouseEvent *event) {
 
     if (m_activeTool == Tool::Pen && m_penDraggingHandle && !m_penNodes.isEmpty()) {
         m_penNodes.last().handle = scenePos - m_penNodes.last().point;
+        viewport()->update();
+        event->accept();
+        return;
+    }
+
+    if (m_activeTool == Tool::Brush && m_brushDragging) {
+        m_brushPoints.append(engine::BrushPoint{scenePos, 1.0});
         viewport()->update();
         event->accept();
         return;
@@ -736,6 +761,13 @@ void CanvasView::mouseReleaseEvent(QMouseEvent *event) {
         return;
     }
 
+    if (m_activeTool == Tool::Brush && m_brushDragging) {
+        m_brushDragging = false;
+        commitBrushStroke();
+        event->accept();
+        return;
+    }
+
     if (m_dragging) {
         m_dragging = false;
         if (m_activeTool == Tool::Selection && !m_selection.isEmpty()) {
@@ -776,6 +808,44 @@ void CanvasView::mouseDoubleClickEvent(QMouseEvent *event) {
         return;
     }
     QGraphicsView::mouseDoubleClickEvent(event);
+}
+
+void CanvasView::tabletEvent(QTabletEvent *event) {
+    if (m_activeTool != Tool::Brush) {
+        // Laisse Qt synthétiser un événement souris pour les autres outils.
+        QGraphicsView::tabletEvent(event);
+        return;
+    }
+
+    const QPointF scenePos = mapToScene(event->position().toPoint());
+    const qreal pressure = std::max(event->pressure(), 0.05);
+
+    switch (event->type()) {
+        case QEvent::TabletPress:
+            m_brushPoints.clear();
+            m_brushPoints.append(engine::BrushPoint{scenePos, pressure});
+            m_brushDragging = true;
+            emit statusMessage(tr("Pinceau (tablette) : pression détectée"));
+            break;
+        case QEvent::TabletMove:
+            if (m_brushDragging) {
+                m_brushPoints.append(engine::BrushPoint{scenePos, pressure});
+                viewport()->update();
+            }
+            break;
+        case QEvent::TabletRelease:
+            if (m_brushDragging) {
+                m_brushDragging = false;
+                commitBrushStroke();
+            }
+            break;
+        default:
+            break;
+    }
+
+    // Empêche Qt de synthétiser en plus un événement souris pour ce même
+    // geste (on l'a déjà traité ici), ce qui dessinerait le trait deux fois.
+    event->accept();
 }
 
 void CanvasView::keyPressEvent(QKeyEvent *event) {
@@ -838,6 +908,7 @@ void CanvasView::keyPressEvent(QKeyEvent *event) {
             case Qt::Key_E: emit toolShortcutRequested(Tool::Ellipse); event->accept(); return;
             case Qt::Key_T: emit toolShortcutRequested(Tool::Text); event->accept(); return;
             case Qt::Key_P: emit toolShortcutRequested(Tool::Pen); event->accept(); return;
+            case Qt::Key_B: emit toolShortcutRequested(Tool::Brush); event->accept(); return;
             default: break;
         }
     }
@@ -883,6 +954,20 @@ void CanvasView::cancelTextEditor() {
     m_textEditor->hide();
     m_textEditor->clear();
     setFocus();
+}
+
+void CanvasView::commitBrushStroke() {
+    if (m_brushPoints.size() < 2) {
+        m_brushPoints.clear();
+        return;
+    }
+    auto shape = std::make_unique<engine::BrushStroke>(m_brushPoints);
+    m_brushPoints.clear();
+    applyCurrentColor(shape.get());
+    auto *command = new engine::AddShapeCommand(m_document->activeLayer(), std::move(shape), tr("Trait de pinceau"));
+    m_document->undoStack()->push(command);
+    m_documentItem->update();
+    emit statusMessage(tr("Trait terminé"));
 }
 
 } // namespace agdraw::ui

@@ -12,9 +12,11 @@ enum class Tool {
     Ellipse,
     Text,
     Pen,
+    Brush,
 };
 
-// Barre d'outils verticale à gauche : sélection, rectangle, ellipse, texte, plume.
+// Barre d'outils verticale à gauche : sélection, rectangle, ellipse, texte,
+// plume, pinceau.
 class ToolBox : public QToolBar {
     Q_OBJECT
 

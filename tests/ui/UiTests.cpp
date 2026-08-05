@@ -7,6 +7,7 @@
 #include <QToolBar>
 #include <QToolButton>
 
+#include "BrushStroke.h"
 #include "CanvasView.h"
 #include "Document.h"
 #include "Layer.h"
@@ -27,6 +28,7 @@ namespace {
 constexpr int kSelectionIndex = 0;
 constexpr int kRectangleIndex = 1;
 constexpr int kTextIndex = 3;
+constexpr int kBrushIndex = 5;
 } // namespace
 
 class UiTests : public QObject {
@@ -44,6 +46,7 @@ private slots:
     void textToolCreatesMultiLineShape();
     void pagesPanelAddsAndNavigatesPages();
     void newDocumentResetsToOnePage();
+    void brushToolCreatesStrokeWithMouse();
     void fileRoundTripThroughCanvas();
 };
 
@@ -321,6 +324,32 @@ void UiTests::newDocumentResetsToOnePage() {
     canvas->newDocument();
     QCOMPARE(canvas->document().pages().size(), size_t(1));
     QCOMPARE(canvas->document().activePage()->name(), QStringLiteral("Page 1"));
+}
+
+void UiTests::brushToolCreatesStrokeWithMouse() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    QVERIFY(canvas && toolbox);
+    canvas->setFocus();
+
+    toolbox->actions()[kBrushIndex]->trigger();
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(100, 100));
+    QTest::mouseMove(canvas->viewport(), QPoint(150, 120));
+    QTest::mouseMove(canvas->viewport(), QPoint(200, 100));
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(200, 100));
+
+    QCOMPARE(canvas->document().activeLayer()->shapeCount(), size_t(1));
+    auto *brush = dynamic_cast<BrushStroke *>(canvas->document().activeLayer()->shapes().front().get());
+    QVERIFY(brush);
+    QVERIFY(brush->points.size() >= 3);
+    for (const auto &point : brush->points) {
+        // À la souris (sans tablette), la pression est simulée constante.
+        QCOMPARE(point.pressure, 1.0);
+    }
+
+    canvas->document().undoStack()->undo();
+    QCOMPARE(canvas->document().activeLayer()->shapeCount(), size_t(0));
 }
 
 void UiTests::fileRoundTripThroughCanvas() {

@@ -17,6 +17,7 @@ QString toolName(Tool tool) {
         case Tool::Ellipse: return QObject::tr("Ellipse");
         case Tool::Text: return QObject::tr("Texte");
         case Tool::Pen: return QObject::tr("Plume");
+        case Tool::Brush: return QObject::tr("Pinceau");
     }
     return {};
 }
