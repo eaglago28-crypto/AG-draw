@@ -68,7 +68,8 @@ redimensionnement, multi-sélection, alignement/distribution, ordre des
 plans, sauvegarde/chargement au format natif `.agd`, export PNG, calques
 avec visibilité/verrouillage réels, effets (ombre portée, dégradé
 linéaire, contour à anneaux concentriques, fondu entre deux formes,
-enveloppe à 4 poignées de coin déformables), et documents multi-pages. Voir
+enveloppe à 4 poignées de coin déformables, extrusion en relief 3D
+simulé), et documents multi-pages. Voir
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
 complète et les étapes à venir.
 
