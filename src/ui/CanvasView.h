@@ -33,12 +33,21 @@ public:
 
     agdraw::engine::Document &document();
 
+    void newDocument();
+    bool saveToFile(const QString &path, QString *errorMessage = nullptr);
+    bool loadFromFile(const QString &path, QString *errorMessage = nullptr);
+    bool exportToPng(const QString &path, QString *errorMessage = nullptr);
+    bool isEmpty() const;
+
 public slots:
     void setActiveTool(agdraw::ui::Tool tool);
     void setActiveColor(const QColor &color);
+    void setSelectionStrokeWidth(double width);
 
 signals:
     void statusMessage(const QString &text);
+    void selectionChanged(agdraw::engine::Shape *primary);
+    void toolShortcutRequested(agdraw::ui::Tool tool);
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
@@ -60,6 +69,8 @@ private:
     void applyCurrentColor(agdraw::engine::Shape *shape) const;
     void commitTextEditor();
     void cancelTextEditor();
+    void setSelection(QVector<agdraw::engine::Shape *> newSelection);
+    void reorderSelection(bool forward, bool toExtreme);
 
     std::unique_ptr<agdraw::engine::Document> m_document;
     DocumentItem *m_documentItem = nullptr;

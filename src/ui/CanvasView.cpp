@@ -1,10 +1,12 @@
 #include "CanvasView.h"
 
+#include "AgdDocumentIO.h"
 #include "Commands.h"
 #include "Document.h"
 #include "DocumentItem.h"
 #include "EllipseShape.h"
 #include "Layer.h"
+#include "PngExporter.h"
 #include "RectShape.h"
 #include "TextShape.h"
 
@@ -81,7 +83,7 @@ void CanvasView::setActiveTool(Tool tool) {
         cancelTextEditor();
     }
     m_activeTool = tool;
-    m_selection.clear();
+    setSelection({});
     m_documentItem->update();
 }
 
@@ -109,6 +111,104 @@ void CanvasView::applyCurrentColor(engine::Shape *shape) const {
     } else {
         shape->fillColor = m_currentColor;
     }
+}
+
+void CanvasView::setSelection(QVector<engine::Shape *> newSelection) {
+    m_selection = std::move(newSelection);
+    emit selectionChanged(m_selection.size() == 1 ? m_selection.first() : nullptr);
+}
+
+void CanvasView::reorderSelection(bool forward, bool toExtreme) {
+    if (m_selection.size() != 1) {
+        return;
+    }
+    engine::Shape *shape = m_selection.first();
+    engine::Layer *owner = m_document->findLayerOf(shape);
+    if (!owner) {
+        return;
+    }
+
+    const size_t from = owner->indexOf(shape);
+    const size_t count = owner->shapeCount();
+    if (count == 0) {
+        return;
+    }
+
+    size_t to = from;
+    QString label;
+    if (toExtreme) {
+        to = forward ? count - 1 : 0;
+        label = forward ? tr("Premier plan") : tr("Arrière-plan");
+    } else {
+        to = forward ? (from + 1 < count ? from + 1 : count - 1) : (from == 0 ? 0 : from - 1);
+        label = forward ? tr("Avancer") : tr("Reculer");
+    }
+
+    if (to != from) {
+        m_document->undoStack()->push(new engine::ReorderShapeCommand(owner, from, to, label));
+        m_documentItem->update();
+        emit statusMessage(label);
+    }
+}
+
+void CanvasView::newDocument() {
+    m_document->clearLayers();
+    m_document->addLayer(tr("Calque 1"));
+    m_document->undoStack()->clear();
+    setSelection({});
+    m_penNodes.clear();
+    m_penDraggingHandle = false;
+    m_documentItem->update();
+    emit statusMessage(tr("Nouveau document"));
+}
+
+bool CanvasView::saveToFile(const QString &path, QString *errorMessage) {
+    return io::saveAgd(*m_document, path, errorMessage);
+}
+
+bool CanvasView::loadFromFile(const QString &path, QString *errorMessage) {
+    if (!io::loadAgd(*m_document, path, errorMessage)) {
+        return false;
+    }
+    setSelection({});
+    m_penNodes.clear();
+    m_penDraggingHandle = false;
+    m_documentItem->update();
+    emit statusMessage(tr("Document chargé"));
+    return true;
+}
+
+bool CanvasView::exportToPng(const QString &path, QString *errorMessage) {
+    const QRectF pageRect(0, 0, 794, 1123);
+    return io::exportPng(*m_document, path, pageRect, pageRect.size().toSize(), errorMessage);
+}
+
+bool CanvasView::isEmpty() const {
+    for (const auto &layer : m_document->layers()) {
+        if (!layer->shapes().empty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void CanvasView::setSelectionStrokeWidth(double width) {
+    if (m_selection.isEmpty()) {
+        return;
+    }
+    if (m_selection.size() == 1) {
+        engine::Shape *shape = m_selection.first();
+        if (shape->strokeWidth != width) {
+            m_document->undoStack()->push(new engine::SetStrokeWidthCommand(shape, shape->strokeWidth, width));
+        }
+    } else {
+        m_document->undoStack()->beginMacro(tr("Épaisseur de trait"));
+        for (engine::Shape *shape : m_selection) {
+            m_document->undoStack()->push(new engine::SetStrokeWidthCommand(shape, shape->strokeWidth, width));
+        }
+        m_document->undoStack()->endMacro();
+    }
+    m_documentItem->update();
 }
 
 void CanvasView::wheelEvent(QWheelEvent *event) {
@@ -300,13 +400,15 @@ void CanvasView::mousePressEvent(QMouseEvent *event) {
             const bool shiftHeld = event->modifiers() & Qt::ShiftModifier;
             if (hitShape) {
                 if (shiftHeld) {
-                    if (m_selection.contains(hitShape)) {
-                        m_selection.removeAll(hitShape);
+                    QVector<engine::Shape *> newSelection = m_selection;
+                    if (newSelection.contains(hitShape)) {
+                        newSelection.removeAll(hitShape);
                     } else {
-                        m_selection.append(hitShape);
+                        newSelection.append(hitShape);
                     }
+                    setSelection(newSelection);
                 } else if (!m_selection.contains(hitShape)) {
-                    m_selection = {hitShape};
+                    setSelection({hitShape});
                 }
                 m_dragging = !m_selection.isEmpty();
                 m_dragStart = scenePos;
@@ -314,7 +416,7 @@ void CanvasView::mousePressEvent(QMouseEvent *event) {
                 emit statusMessage(tr("%1 forme(s) sélectionnée(s)").arg(m_selection.size()));
             } else {
                 if (!shiftHeld) {
-                    m_selection.clear();
+                    setSelection({});
                 }
                 m_rubberBanding = true;
                 m_rubberBandStart = scenePos;
@@ -447,7 +549,7 @@ void CanvasView::mouseReleaseEvent(QMouseEvent *event) {
             applyCurrentColor(shape.get());
             auto *command = new engine::AddShapeCommand(m_document->activeLayer(), std::move(shape), label);
             m_document->undoStack()->push(command);
-            m_selection = {command->shapePtr()};
+            setSelection({command->shapePtr()});
         }
         m_documentItem->update();
         viewport()->update();
@@ -458,11 +560,13 @@ void CanvasView::mouseReleaseEvent(QMouseEvent *event) {
     if (m_rubberBanding) {
         m_rubberBanding = false;
         const QVector<engine::Shape *> found = shapesInRect(m_rubberBandRect);
+        QVector<engine::Shape *> newSelection = m_selection;
         for (engine::Shape *shape : found) {
-            if (!m_selection.contains(shape)) {
-                m_selection.append(shape);
+            if (!newSelection.contains(shape)) {
+                newSelection.append(shape);
             }
         }
+        setSelection(newSelection);
         m_rubberBandRect = QRectF();
         emit statusMessage(m_selection.isEmpty() ? tr("Aucune forme sous le curseur")
                                                    : tr("%1 forme(s) sélectionnée(s)").arg(m_selection.size()));
@@ -544,7 +648,7 @@ void CanvasView::keyPressEvent(QKeyEvent *event) {
             }
         }
         m_document->undoStack()->endMacro();
-        m_selection.clear();
+        setSelection({});
         m_documentItem->update();
         emit statusMessage(tr("Forme(s) supprimée(s)"));
         event->accept();
@@ -553,7 +657,7 @@ void CanvasView::keyPressEvent(QKeyEvent *event) {
 
     if (event->matches(QKeySequence::Undo)) {
         m_document->undoStack()->undo();
-        m_selection.clear();
+        setSelection({});
         m_documentItem->update();
         emit statusMessage(tr("Annulé"));
         event->accept();
@@ -562,11 +666,30 @@ void CanvasView::keyPressEvent(QKeyEvent *event) {
 
     if (event->matches(QKeySequence::Redo)) {
         m_document->undoStack()->redo();
-        m_selection.clear();
+        setSelection({});
         m_documentItem->update();
         emit statusMessage(tr("Rétabli"));
         event->accept();
         return;
+    }
+
+    if (m_activeTool == Tool::Selection && (event->key() == Qt::Key_BracketRight || event->key() == Qt::Key_BracketLeft)) {
+        const bool forward = event->key() == Qt::Key_BracketRight;
+        const bool toExtreme = event->modifiers() & Qt::ShiftModifier;
+        reorderSelection(forward, toExtreme);
+        event->accept();
+        return;
+    }
+
+    if (event->modifiers() == Qt::NoModifier) {
+        switch (event->key()) {
+            case Qt::Key_V: emit toolShortcutRequested(Tool::Selection); event->accept(); return;
+            case Qt::Key_R: emit toolShortcutRequested(Tool::Rectangle); event->accept(); return;
+            case Qt::Key_E: emit toolShortcutRequested(Tool::Ellipse); event->accept(); return;
+            case Qt::Key_T: emit toolShortcutRequested(Tool::Text); event->accept(); return;
+            case Qt::Key_P: emit toolShortcutRequested(Tool::Pen); event->accept(); return;
+            default: break;
+        }
     }
 
     QGraphicsView::keyPressEvent(event);

@@ -42,6 +42,19 @@ std::unique_ptr<Shape> Layer::takeShape(Shape *shape) {
     return taken;
 }
 
+void Layer::moveShape(size_t fromIndex, size_t toIndex) {
+    if (fromIndex >= m_shapes.size() || toIndex >= m_shapes.size() || fromIndex == toIndex) {
+        return;
+    }
+    auto from = m_shapes.begin() + static_cast<std::ptrdiff_t>(fromIndex);
+    auto to = m_shapes.begin() + static_cast<std::ptrdiff_t>(toIndex);
+    if (fromIndex < toIndex) {
+        std::rotate(from, from + 1, to + 1);
+    } else {
+        std::rotate(to, from, from + 1);
+    }
+}
+
 void Layer::paint(QPainter &painter) const {
     if (!m_visible) {
         return;

@@ -28,6 +28,8 @@ public:
     void removeShape(Shape *shape);
     std::unique_ptr<Shape> takeShape(Shape *shape);
     size_t indexOf(Shape *shape) const;
+    size_t shapeCount() const { return m_shapes.size(); }
+    void moveShape(size_t fromIndex, size_t toIndex);
 
     const std::vector<std::unique_ptr<Shape>> &shapes() const { return m_shapes; }
 

@@ -100,4 +100,33 @@ private:
     QColor m_newColor;
 };
 
+// Change l'épaisseur de trait d'une forme.
+class SetStrokeWidthCommand : public QUndoCommand {
+public:
+    SetStrokeWidthCommand(Shape *shape, qreal oldWidth, qreal newWidth);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    qreal m_oldWidth;
+    qreal m_newWidth;
+};
+
+// Change la position d'une forme dans l'ordre de dessin de son calque
+// (avant-plan / arrière-plan).
+class ReorderShapeCommand : public QUndoCommand {
+public:
+    ReorderShapeCommand(Layer *layer, size_t fromIndex, size_t toIndex, const QString &text);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Layer *m_layer;
+    size_t m_from;
+    size_t m_to;
+};
+
 } // namespace agdraw::engine

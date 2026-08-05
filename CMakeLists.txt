@@ -12,6 +12,10 @@ set(CMAKE_AUTOUIC ON)
 # Voir docs/ARCHITECTURE.md pour le détail de chaque module.
 # find_package(Skia REQUIRED) — sera ajouté à l'Étape 2 (moteur de dessin).
 
+enable_testing()
+
 add_subdirectory(src/engine)
+add_subdirectory(src/io)
 add_subdirectory(src/ui)
 add_subdirectory(apps/agdraw)
+add_subdirectory(tests)

@@ -73,4 +73,26 @@ void SetStrokeColorCommand::undo() {
     m_shape->strokeColor = m_oldColor;
 }
 
+SetStrokeWidthCommand::SetStrokeWidthCommand(Shape *shape, qreal oldWidth, qreal newWidth)
+    : QUndoCommand(QObject::tr("Épaisseur de trait")), m_shape(shape), m_oldWidth(oldWidth), m_newWidth(newWidth) {}
+
+void SetStrokeWidthCommand::redo() {
+    m_shape->strokeWidth = m_newWidth;
+}
+
+void SetStrokeWidthCommand::undo() {
+    m_shape->strokeWidth = m_oldWidth;
+}
+
+ReorderShapeCommand::ReorderShapeCommand(Layer *layer, size_t fromIndex, size_t toIndex, const QString &text)
+    : QUndoCommand(text), m_layer(layer), m_from(fromIndex), m_to(toIndex) {}
+
+void ReorderShapeCommand::redo() {
+    m_layer->moveShape(m_from, m_to);
+}
+
+void ReorderShapeCommand::undo() {
+    m_layer->moveShape(m_to, m_from);
+}
+
 } // namespace agdraw::engine

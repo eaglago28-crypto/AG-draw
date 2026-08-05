@@ -19,6 +19,7 @@ public:
     Layer &addLayer(const QString &name);
     Layer *activeLayer();
     void setActiveLayer(Layer *layer);
+    void clearLayers();
 
     const std::vector<std::unique_ptr<Layer>> &layers() const { return m_layers; }
 

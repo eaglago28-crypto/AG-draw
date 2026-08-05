@@ -18,11 +18,21 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
 
 private:
+    void setupFileMenu();
+    bool confirmDiscardIfNeeded();
+    void updateWindowTitle();
+    void doNew();
+    void doOpen();
+    void doSave();
+    void doSaveAs();
+    void doExportPng();
+
     CanvasView *m_canvas;
     ToolBox *m_toolBox;
     PropertiesBar *m_propertiesBar;
     LayersPanel *m_layersPanel;
     ColorPalette *m_colorPalette;
+    QString m_currentFilePath;
 };
 
 } // namespace agdraw::ui

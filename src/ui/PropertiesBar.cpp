@@ -1,5 +1,7 @@
 #include "PropertiesBar.h"
 
+#include "Shape.h"
+
 #include <QLabel>
 #include <QDoubleSpinBox>
 
@@ -32,11 +34,23 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     m_strokeWidth->setSingleStep(0.5);
     m_strokeWidth->setValue(1.0);
     m_strokeWidth->setSuffix(tr(" pt"));
+    m_strokeWidth->setEnabled(false);
+    connect(m_strokeWidth, &QDoubleSpinBox::valueChanged, this, &PropertiesBar::strokeWidthEdited);
     addWidget(m_strokeWidth);
 }
 
 void PropertiesBar::setActiveTool(Tool tool) {
     m_toolLabel->setText(toolName(tool));
+}
+
+void PropertiesBar::setSelectedShape(engine::Shape *shape) {
+    const QSignalBlocker blocker(m_strokeWidth);
+    if (shape) {
+        m_strokeWidth->setEnabled(true);
+        m_strokeWidth->setValue(shape->strokeWidth);
+    } else {
+        m_strokeWidth->setEnabled(false);
+    }
 }
 
 } // namespace agdraw::ui
