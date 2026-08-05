@@ -10,6 +10,7 @@ set(CMAKE_AUTOUIC ON)
 # Modules (activés au fur et à mesure que leur code est ajouté) :
 # ui, engine, io, layers, text, images, effects, ai, cloud, plugins
 # Voir docs/ARCHITECTURE.md pour le détail de chaque module.
+# find_package(Skia REQUIRED) — sera ajouté à l'Étape 2 (moteur de dessin).
 
-# find_package(Qt6 REQUIRED COMPONENTS Widgets Gui Core)
-# find_package(Skia REQUIRED)
+add_subdirectory(src/ui)
+add_subdirectory(apps/agdraw)
