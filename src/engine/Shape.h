@@ -22,6 +22,7 @@ public:
     // Redimensionnement par glisser (rectangle, ellipse). Sans effet pour
     // les formes construites point par point (le tracé de la plume).
     virtual void setBounds(const QRectF &rect) { (void)rect; }
+    virtual bool isResizable() const { return false; }
 
     QColor fillColor = QColor(200, 205, 215);
     QColor strokeColor = Qt::black;

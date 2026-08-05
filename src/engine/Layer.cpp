@@ -16,6 +16,17 @@ void Layer::removeShape(Shape *shape) {
         m_shapes.end());
 }
 
+std::unique_ptr<Shape> Layer::takeShape(Shape *shape) {
+    auto it = std::find_if(m_shapes.begin(), m_shapes.end(),
+                            [shape](const std::unique_ptr<Shape> &candidate) { return candidate.get() == shape; });
+    if (it == m_shapes.end()) {
+        return nullptr;
+    }
+    std::unique_ptr<Shape> taken = std::move(*it);
+    m_shapes.erase(it);
+    return taken;
+}
+
 void Layer::paint(QPainter &painter) const {
     if (!m_visible) {
         return;

@@ -12,6 +12,7 @@ public:
     bool contains(const QPointF &point) const override;
     void translate(const QPointF &delta) override { rect.translate(delta); }
     void setBounds(const QRectF &newRect) override { rect = newRect; }
+    bool isResizable() const override { return true; }
     void paint(QPainter &painter) const override;
 
     QRectF rect;

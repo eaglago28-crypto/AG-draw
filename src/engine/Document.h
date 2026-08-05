@@ -2,6 +2,7 @@
 
 #include "Layer.h"
 
+#include <QUndoStack>
 #include <memory>
 #include <vector>
 
@@ -24,9 +25,12 @@ public:
     Shape *shapeAt(const QPointF &point) const;
     void paint(QPainter &painter) const;
 
+    QUndoStack *undoStack() { return &m_undoStack; }
+
 private:
     std::vector<std::unique_ptr<Layer>> m_layers;
     Layer *m_activeLayer = nullptr;
+    QUndoStack m_undoStack;
 };
 
 } // namespace agdraw::engine

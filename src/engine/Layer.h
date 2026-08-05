@@ -25,6 +25,7 @@ public:
 
     Shape *addShape(std::unique_ptr<Shape> shape);
     void removeShape(Shape *shape);
+    std::unique_ptr<Shape> takeShape(Shape *shape);
 
     const std::vector<std::unique_ptr<Shape>> &shapes() const { return m_shapes; }
 

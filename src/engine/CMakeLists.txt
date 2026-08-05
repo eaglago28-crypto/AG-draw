@@ -8,10 +8,14 @@ add_library(ag_engine STATIC
     EllipseShape.cpp
     PathShape.h
     PathShape.cpp
+    TextShape.h
+    TextShape.cpp
     Layer.h
     Layer.cpp
     Document.h
     Document.cpp
+    Commands.h
+    Commands.cpp
 )
 
 target_include_directories(ag_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
