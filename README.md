@@ -66,3 +66,7 @@ annuler/rétablir, redimensionnement, multi-sélection, ordre des plans,
 sauvegarde/chargement au format natif `.agd` et export PNG. Voir
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
 complète et les étapes à venir.
+
+## Licence
+
+Logiciel propriétaire — tous droits réservés. Voir [`LICENSE`](LICENSE).
