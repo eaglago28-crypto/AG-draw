@@ -11,6 +11,7 @@
 #include "Layer.h"
 #include "Page.h"
 #include "PathShape.h"
+#include "PowerClipGroup.h"
 #include "RectShape.h"
 #include "TextShape.h"
 
@@ -47,6 +48,9 @@ private slots:
     void agdRoundTripPreservesEnvelope();
     void extrusionUndoRedo();
     void agdRoundTripPreservesExtrusion();
+    void powerClipUndoRestoresOriginalOrder();
+    void powerClipClipsHitTestToContainer();
+    void agdRoundTripPreservesPowerClip();
 };
 
 void EngineTests::addShapeUndo() {
@@ -542,6 +546,85 @@ void EngineTests::agdRoundTripPreservesExtrusion() {
     QCOMPARE(loadedShape->extrusionDepth, 15.0);
     QCOMPARE(loadedShape->extrusionAngle, 30.0);
     QCOMPARE(loadedShape->extrusionColor, QColor(50, 60, 70));
+}
+
+void EngineTests::powerClipUndoRestoresOriginalOrder() {
+    Document doc;
+    Layer *layer = doc.activeLayer();
+    Shape *a = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 10, 10)));
+    Shape *b = layer->addShape(std::make_unique<RectShape>(QRectF(1, 1, 5, 5)));
+    Shape *c = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40)));
+    Shape *d = layer->addShape(std::make_unique<RectShape>(QRectF(50, 50, 10, 10)));
+    QCOMPARE(layer->shapeCount(), size_t(4));
+
+    // b = contenu, c = contenant (dernier de la liste des membres).
+    QVector<Shape *> members{b, c};
+    auto *command = new ApplyPowerClipCommand(layer, members, c, QStringLiteral("PowerClip"));
+    doc.undoStack()->push(command);
+
+    QCOMPARE(layer->shapeCount(), size_t(3));
+    Shape *group = command->groupPtr();
+    QVERIFY(group);
+    QCOMPARE(layer->indexOf(a), size_t(0));
+    QCOMPARE(layer->indexOf(group), size_t(1)); // remplace la place laissée par b et c
+    QCOMPARE(layer->indexOf(d), size_t(2));
+
+    doc.undoStack()->undo();
+    QCOMPARE(layer->shapeCount(), size_t(4));
+    QCOMPARE(layer->indexOf(a), size_t(0));
+    QCOMPARE(layer->indexOf(b), size_t(1));
+    QCOMPARE(layer->indexOf(c), size_t(2));
+    QCOMPARE(layer->indexOf(d), size_t(3));
+
+    // Le redo doit réutiliser le même objet groupe (pointeur stable pour
+    // tout code qui l'aurait référencé, comme la sélection courante de l'UI).
+    doc.undoStack()->redo();
+    QCOMPARE(layer->shapeCount(), size_t(3));
+    QCOMPARE(command->groupPtr(), group);
+    QCOMPARE(layer->indexOf(group), size_t(1));
+}
+
+void EngineTests::powerClipClipsHitTestToContainer() {
+    Document doc;
+    Layer *layer = doc.activeLayer();
+    // Le contenu déborde largement du contenant.
+    Shape *content = layer->addShape(std::make_unique<RectShape>(QRectF(-100, -100, 300, 300)));
+    Shape *container = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+
+    QVector<Shape *> members{content, container};
+    doc.undoStack()->push(new ApplyPowerClipCommand(layer, members, container, QStringLiteral("PowerClip")));
+
+    Shape *hit = doc.shapeAt(QPointF(10, 10)); // à l'intérieur du contenant
+    QCOMPARE(hit, layer->shapes().front().get());
+
+    Shape *miss = doc.shapeAt(QPointF(200, 200)); // dans le contenu, hors du contenant
+    QVERIFY(miss == nullptr);
+}
+
+void EngineTests::agdRoundTripPreservesPowerClip() {
+    Document doc;
+    Layer *layer = doc.activeLayer();
+    Shape *content = layer->addShape(std::make_unique<RectShape>(QRectF(2, 2, 6, 6)));
+    Shape *container = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+    QVector<Shape *> members{content, container};
+    doc.undoStack()->push(new ApplyPowerClipCommand(layer, members, container, QStringLiteral("PowerClip")));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("powerclip.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    QCOMPARE(loaded.activeLayer()->shapeCount(), size_t(1));
+    auto *group = dynamic_cast<PowerClipGroup *>(loaded.activeLayer()->shapes().front().get());
+    QVERIFY(group);
+    QCOMPARE(group->container()->bounds(), QRectF(0, 0, 20, 20));
+    QCOMPARE(group->contents().size(), size_t(1));
+    QCOMPARE(group->contents().front()->bounds(), QRectF(2, 2, 6, 6));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

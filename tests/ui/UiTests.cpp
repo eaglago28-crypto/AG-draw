@@ -15,6 +15,7 @@
 #include "MainWindow.h"
 #include "Page.h"
 #include "PagesPanel.h"
+#include "PowerClipGroup.h"
 #include "PropertiesBar.h"
 #include "RectShape.h"
 #include "TextShape.h"
@@ -44,6 +45,7 @@ private slots:
     void distributeSelectionSpacesEvenly();
     void blendButtonCreatesIntermediateShapes();
     void envelopeHandleDragWarpsCorner();
+    void powerClipButtonGroupsSelection();
     void multiLineTextBoundsTallerThanSingleLine();
     void textToolCreatesMultiLineShape();
     void pagesPanelAddsAndNavigatesPages();
@@ -361,6 +363,50 @@ void UiTests::envelopeHandleDragWarpsCorner() {
 
     canvas->document().undoStack()->undo();
     QCOMPARE(shape->envelopeCorners[0], QPointF(0, 0));
+}
+
+void UiTests::powerClipButtonGroupsSelection() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    Layer *layer = canvas->document().activeLayer();
+    // Le contenu déborde largement du contenant, pour vérifier le
+    // découpage visuellement (et via le hit-test) après l'application.
+    Shape *content = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 200, 200)));
+    Shape *container = layer->addShape(std::make_unique<RectShape>(QRectF(300, 300, 50, 50)));
+    // Éloigné du contenant pour que le clic de sélection ne touche que le contenu.
+    content->translate(QPointF(300, -300));
+    QCOMPARE(content->bounds(), QRectF(300, -300, 200, 200));
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(310, -290)));
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::ShiftModifier, canvas->mapFromScene(QPointF(310, 310)));
+
+    QToolButton *powerClipButton = nullptr;
+    for (QToolButton *button : propertiesBar->findChildren<QToolButton *>()) {
+        if (button->text() == QObject::tr("PowerClip")) {
+            powerClipButton = button;
+            break;
+        }
+    }
+    QVERIFY(powerClipButton);
+    QVERIFY(powerClipButton->isEnabled());
+    QTest::mouseClick(powerClipButton, Qt::LeftButton);
+
+    QCOMPARE(layer->shapeCount(), size_t(1));
+    auto *group = dynamic_cast<PowerClipGroup *>(layer->shapes().front().get());
+    QVERIFY(group);
+    QCOMPARE(group->container(), container);
+    QCOMPARE(group->contents().size(), size_t(1));
+    QCOMPARE(group->contents().front().get(), content);
+    QCOMPARE(group->bounds(), QRectF(300, 300, 50, 50));
+
+    canvas->document().undoStack()->undo();
+    QCOMPARE(layer->shapeCount(), size_t(2));
 }
 
 void UiTests::multiLineTextBoundsTallerThanSingleLine() {

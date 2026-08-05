@@ -12,6 +12,7 @@ namespace agdraw::engine {
 class Layer;
 class Document;
 class Page;
+class PowerClipGroup;
 
 // Ajoute une forme déjà construite à un calque (annulable). L'appelant
 // perd la propriété de la forme au profit de la commande / du calque.
@@ -218,6 +219,32 @@ private:
     Shape *m_shape;
     bool m_oldEnabled;
     bool m_newEnabled;
+};
+
+// Regroupe plusieurs formes déjà présentes dans un calque en un PowerClip
+// (dernière forme de `members` = contenant). redo() les retire du calque et
+// les enveloppe dans un PowerClipGroup inséré à la position d'origine du
+// contenant ; undo() démonte le groupe et restitue chaque forme à son index
+// d'origine dans le calque, dans l'ordre. Le même objet PowerClipGroup est
+// réutilisé (vidé/repeuplé) d'un cycle undo/redo à l'autre plutôt que
+// recréé, pour que groupPtr() reste valide même après un undo suivi d'un
+// redo (par ex. la sélection courante de l'UI qui le référence).
+class ApplyPowerClipCommand : public QUndoCommand {
+public:
+    ApplyPowerClipCommand(Layer *layer, QVector<Shape *> members, Shape *container, const QString &text);
+
+    void redo() override;
+    void undo() override;
+
+    Shape *groupPtr() const;
+
+private:
+    Layer *m_layer;
+    QVector<Shape *> m_members;
+    Shape *m_container;
+    QVector<size_t> m_originalIndices;
+    std::unique_ptr<PowerClipGroup> m_detachedGroup;
+    PowerClipGroup *m_groupPtr = nullptr;
 };
 
 // Ajoute une page déjà construite au document (annulable).

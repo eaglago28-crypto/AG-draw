@@ -90,6 +90,14 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     m_blendButton->setEnabled(false);
     connect(m_blendButton, &QToolButton::clicked, this, &PropertiesBar::blendRequested);
     addWidget(m_blendButton);
+
+    m_powerClipButton = new QToolButton(this);
+    m_powerClipButton->setText(tr("PowerClip"));
+    m_powerClipButton->setToolTip(
+        tr("Placer les formes sélectionnées à l'intérieur de la dernière (rectangle ou ellipse), qui sert de masque"));
+    m_powerClipButton->setEnabled(false);
+    connect(m_powerClipButton, &QToolButton::clicked, this, &PropertiesBar::powerClipRequested);
+    addWidget(m_powerClipButton);
 }
 
 QToolButton *PropertiesBar::addAlignButton(const QString &text, const QString &tooltip, AlignMode mode) {
@@ -164,6 +172,7 @@ void PropertiesBar::setSelectionCount(int count) {
         button->setEnabled(count >= 3);
     }
     m_blendButton->setEnabled(count == 2);
+    m_powerClipButton->setEnabled(count >= 2);
 }
 
 } // namespace agdraw::ui

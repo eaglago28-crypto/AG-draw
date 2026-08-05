@@ -13,6 +13,8 @@ add_library(ag_engine STATIC
     TextShape.cpp
     BrushStroke.h
     BrushStroke.cpp
+    PowerClipGroup.h
+    PowerClipGroup.cpp
     Layer.h
     Layer.cpp
     Page.h

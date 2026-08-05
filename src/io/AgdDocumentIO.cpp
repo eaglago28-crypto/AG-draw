@@ -6,6 +6,7 @@
 #include "Layer.h"
 #include "Page.h"
 #include "PathShape.h"
+#include "PowerClipGroup.h"
 #include "RectShape.h"
 #include "TextShape.h"
 
@@ -180,6 +181,20 @@ QJsonObject brushToJson(const engine::BrushStroke &shape) {
     return obj;
 }
 
+QJsonObject shapeToJson(const engine::Shape &shape);
+
+QJsonObject powerClipToJson(const engine::PowerClipGroup &group) {
+    QJsonObject obj;
+    obj["type"] = "powerclip";
+    obj["container"] = shapeToJson(*group.container());
+    QJsonArray contents;
+    for (const auto &content : group.contents()) {
+        contents.append(shapeToJson(*content));
+    }
+    obj["contents"] = contents;
+    return obj;
+}
+
 QJsonObject shapeToJson(const engine::Shape &shape) {
     if (const auto *rect = dynamic_cast<const engine::RectShape *>(&shape)) {
         return rectToJson(*rect);
@@ -195,6 +210,9 @@ QJsonObject shapeToJson(const engine::Shape &shape) {
     }
     if (const auto *brush = dynamic_cast<const engine::BrushStroke *>(&shape)) {
         return brushToJson(*brush);
+    }
+    if (const auto *powerClip = dynamic_cast<const engine::PowerClipGroup *>(&shape)) {
+        return powerClipToJson(*powerClip);
     }
     return {};
 }
@@ -229,6 +247,17 @@ std::unique_ptr<engine::Shape> shapeFromJson(const QJsonObject &obj) {
                                               pointObj.value("pressure").toDouble(1.0)});
         }
         shape = std::make_unique<engine::BrushStroke>(points, obj.value("baseWidth").toDouble(8.0));
+    } else if (type == QLatin1String("powerclip")) {
+        std::unique_ptr<engine::Shape> container = shapeFromJson(obj.value("container").toObject());
+        std::vector<std::unique_ptr<engine::Shape>> contents;
+        for (const QJsonValue &value : obj.value("contents").toArray()) {
+            if (auto content = shapeFromJson(value.toObject())) {
+                contents.push_back(std::move(content));
+            }
+        }
+        if (container) {
+            shape = std::make_unique<engine::PowerClipGroup>(std::move(container), std::move(contents));
+        }
     }
 
     if (shape) {

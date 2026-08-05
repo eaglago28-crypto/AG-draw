@@ -3,6 +3,9 @@
 #include "Document.h"
 #include "Layer.h"
 #include "Page.h"
+#include "PowerClipGroup.h"
+
+#include <algorithm>
 
 namespace agdraw::engine {
 
@@ -167,6 +170,76 @@ void SetExtrusionCommand::redo() {
 
 void SetExtrusionCommand::undo() {
     m_shape->extrusionEnabled = m_oldEnabled;
+}
+
+ApplyPowerClipCommand::ApplyPowerClipCommand(Layer *layer, QVector<Shape *> members, Shape *container,
+                                              const QString &text)
+    : QUndoCommand(text), m_layer(layer), m_members(std::move(members)), m_container(container) {}
+
+Shape *ApplyPowerClipCommand::groupPtr() const {
+    return m_groupPtr;
+}
+
+void ApplyPowerClipCommand::redo() {
+    m_originalIndices.clear();
+    for (Shape *member : m_members) {
+        m_originalIndices.append(m_layer->indexOf(member));
+    }
+    const size_t containerOriginalIndex = m_layer->indexOf(m_container);
+
+    std::unique_ptr<Shape> container;
+    std::vector<std::unique_ptr<Shape>> contents;
+    for (Shape *member : m_members) {
+        std::unique_ptr<Shape> owned = m_layer->takeShape(member);
+        if (member == m_container) {
+            container = std::move(owned);
+        } else {
+            contents.push_back(std::move(owned));
+        }
+    }
+
+    size_t insertionIndex = containerOriginalIndex;
+    for (int i = 0; i < m_members.size(); ++i) {
+        if (m_members[i] != m_container && m_originalIndices[i] < containerOriginalIndex) {
+            --insertionIndex;
+        }
+    }
+
+    if (!m_detachedGroup) {
+        m_detachedGroup = std::make_unique<PowerClipGroup>(std::move(container), std::move(contents));
+        m_groupPtr = m_detachedGroup.get();
+    } else {
+        m_groupPtr->setContainer(std::move(container));
+        m_groupPtr->setContents(std::move(contents));
+    }
+    m_layer->insertShape(insertionIndex, std::move(m_detachedGroup));
+}
+
+void ApplyPowerClipCommand::undo() {
+    std::unique_ptr<Shape> takenAsShape = m_layer->takeShape(m_groupPtr);
+    m_detachedGroup.reset(static_cast<PowerClipGroup *>(takenAsShape.release()));
+
+    std::unique_ptr<Shape> container = m_detachedGroup->releaseContainer();
+    std::vector<std::unique_ptr<Shape>> contents = m_detachedGroup->releaseContents();
+
+    struct Restored {
+        size_t originalIndex;
+        std::unique_ptr<Shape> shape;
+    };
+    std::vector<Restored> restored;
+    size_t contentIndex = 0;
+    for (int i = 0; i < m_members.size(); ++i) {
+        if (m_members[i] == m_container) {
+            restored.push_back({m_originalIndices[i], std::move(container)});
+        } else {
+            restored.push_back({m_originalIndices[i], std::move(contents[contentIndex++])});
+        }
+    }
+    std::sort(restored.begin(), restored.end(),
+              [](const Restored &a, const Restored &b) { return a.originalIndex < b.originalIndex; });
+    for (Restored &item : restored) {
+        m_layer->insertShape(item.originalIndex, std::move(item.shape));
+    }
 }
 
 AddPageCommand::AddPageCommand(Document *document, std::unique_ptr<Page> page, const QString &text)

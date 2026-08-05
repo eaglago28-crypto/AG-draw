@@ -55,6 +55,7 @@ public slots:
     void alignSelection(agdraw::ui::AlignMode mode);
     void distributeSelection(agdraw::ui::DistributeMode mode);
     void blendSelection();
+    void applyPowerClip();
     void refreshView();
 
 signals:

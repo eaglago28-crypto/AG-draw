@@ -9,6 +9,7 @@
 #include "Layer.h"
 #include "Page.h"
 #include "PngExporter.h"
+#include "PowerClipGroup.h"
 #include "RectShape.h"
 #include "TextShape.h"
 
@@ -456,6 +457,37 @@ void CanvasView::blendSelection() {
     m_document->undoStack()->endMacro();
     m_documentItem->update();
     emit statusMessage(tr("Fondu créé"));
+}
+
+void CanvasView::applyPowerClip() {
+    if (m_selection.size() < 2) {
+        emit statusMessage(tr("Sélectionnez au moins deux formes pour créer un PowerClip"));
+        return;
+    }
+
+    engine::Shape *container = m_selection.last();
+    if (!container->supportsFillEffects()) {
+        emit statusMessage(tr("Le contenant du PowerClip doit être un rectangle ou une ellipse (dernière forme "
+                               "sélectionnée)"));
+        return;
+    }
+
+    engine::Layer *layer = m_document->findLayerOf(container);
+    if (!layer) {
+        return;
+    }
+    for (engine::Shape *shape : m_selection) {
+        if (m_document->findLayerOf(shape) != layer) {
+            emit statusMessage(tr("Toutes les formes doivent appartenir au même calque"));
+            return;
+        }
+    }
+
+    auto *command = new engine::ApplyPowerClipCommand(layer, m_selection, container, tr("PowerClip"));
+    m_document->undoStack()->push(command);
+    setSelection({command->groupPtr()});
+    m_documentItem->update();
+    emit statusMessage(tr("PowerClip créé"));
 }
 
 void CanvasView::refreshView() {
