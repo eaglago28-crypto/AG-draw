@@ -2,6 +2,7 @@
 
 #include "Shape.h"
 
+#include <QColor>
 #include <QUndoCommand>
 #include <memory>
 
@@ -52,6 +53,51 @@ private:
     Shape *m_shape;
     QRectF m_oldBounds;
     QRectF m_newBounds;
+};
+
+// Retire une forme existante d'un calque (annulable) en conservant sa
+// position d'origine dans la pile de dessin pour une restauration fidèle.
+class RemoveShapeCommand : public QUndoCommand {
+public:
+    RemoveShapeCommand(Layer *layer, Shape *shape, const QString &text);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Layer *m_layer;
+    Shape *m_shapePtr;
+    std::unique_ptr<Shape> m_shape;
+    size_t m_index = 0;
+};
+
+// Change la couleur de remplissage d'une forme.
+class SetFillColorCommand : public QUndoCommand {
+public:
+    SetFillColorCommand(Shape *shape, const QColor &oldColor, const QColor &newColor);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    QColor m_oldColor;
+    QColor m_newColor;
+};
+
+// Change la couleur de trait d'une forme (utilisé pour les tracés, qui
+// n'ont pas de remplissage).
+class SetStrokeColorCommand : public QUndoCommand {
+public:
+    SetStrokeColorCommand(Shape *shape, const QColor &oldColor, const QColor &newColor);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    QColor m_oldColor;
+    QColor m_newColor;
 };
 
 } // namespace agdraw::engine

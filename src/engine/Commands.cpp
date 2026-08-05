@@ -39,4 +39,38 @@ void ResizeShapeCommand::undo() {
     m_shape->setBounds(m_oldBounds);
 }
 
+RemoveShapeCommand::RemoveShapeCommand(Layer *layer, Shape *shape, const QString &text)
+    : QUndoCommand(text), m_layer(layer), m_shapePtr(shape) {}
+
+void RemoveShapeCommand::redo() {
+    m_index = m_layer->indexOf(m_shapePtr);
+    m_shape = m_layer->takeShape(m_shapePtr);
+}
+
+void RemoveShapeCommand::undo() {
+    m_shapePtr = m_layer->insertShape(m_index, std::move(m_shape));
+}
+
+SetFillColorCommand::SetFillColorCommand(Shape *shape, const QColor &oldColor, const QColor &newColor)
+    : QUndoCommand(QObject::tr("Couleur")), m_shape(shape), m_oldColor(oldColor), m_newColor(newColor) {}
+
+void SetFillColorCommand::redo() {
+    m_shape->fillColor = m_newColor;
+}
+
+void SetFillColorCommand::undo() {
+    m_shape->fillColor = m_oldColor;
+}
+
+SetStrokeColorCommand::SetStrokeColorCommand(Shape *shape, const QColor &oldColor, const QColor &newColor)
+    : QUndoCommand(QObject::tr("Couleur")), m_shape(shape), m_oldColor(oldColor), m_newColor(newColor) {}
+
+void SetStrokeColorCommand::redo() {
+    m_shape->strokeColor = m_newColor;
+}
+
+void SetStrokeColorCommand::undo() {
+    m_shape->strokeColor = m_oldColor;
+}
+
 } // namespace agdraw::engine

@@ -7,18 +7,27 @@
 
 namespace agdraw::engine {
 
-// Tracé libre créé par l'outil plume : segments droits pour l'instant ;
-// les courbes de Bézier et l'édition de nœuds viendront à l'Étape 3.
+// Nœud d'un tracé : point d'ancrage + poignée sortante (décalage relatif).
+// La poignée entrante est le symétrique (-handle), comme dans un outil
+// plume classique. Une poignée nulle donne un point anguleux (segment
+// droit).
+struct PathNode {
+    QPointF point;
+    QPointF handle;
+};
+
+// Tracé libre créé par l'outil plume : chaque nœud peut être un point
+// anguleux (segment droit) ou un point lisse avec poignées de Bézier.
 class PathShape : public Shape {
 public:
-    explicit PathShape(QVector<QPointF> points) : points(std::move(points)) {}
+    explicit PathShape(QVector<PathNode> nodes) : nodes(std::move(nodes)) {}
 
     QRectF bounds() const override;
     bool contains(const QPointF &point) const override;
     void translate(const QPointF &delta) override;
     void paint(QPainter &painter) const override;
 
-    QVector<QPointF> points;
+    QVector<PathNode> nodes;
 
 private:
     QPainterPath toPath() const;

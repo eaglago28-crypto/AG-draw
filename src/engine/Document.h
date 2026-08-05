@@ -23,6 +23,7 @@ public:
     const std::vector<std::unique_ptr<Layer>> &layers() const { return m_layers; }
 
     Shape *shapeAt(const QPointF &point) const;
+    Layer *findLayerOf(Shape *shape) const;
     void paint(QPainter &painter) const;
 
     QUndoStack *undoStack() { return &m_undoStack; }

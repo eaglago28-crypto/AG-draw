@@ -1,15 +1,18 @@
 #pragma once
 
+#include <QColor>
 #include <QGraphicsView>
 #include <QVector>
 #include <memory>
 
+#include "PathShape.h"
 #include "ToolBox.h"
 
 class QLineEdit;
 
 namespace agdraw::engine {
 class Document;
+class Layer;
 class Shape;
 }
 
@@ -32,6 +35,7 @@ public:
 
 public slots:
     void setActiveTool(agdraw::ui::Tool tool);
+    void setActiveColor(const QColor &color);
 
 signals:
     void statusMessage(const QString &text);
@@ -52,6 +56,8 @@ private:
     void setupTextEditor();
     int hitTestHandle(const QPoint &viewPos) const;
     QRectF computeResizedBounds(const QPointF &scenePos) const;
+    QVector<agdraw::engine::Shape *> shapesInRect(const QRectF &rect) const;
+    void applyCurrentColor(agdraw::engine::Shape *shape) const;
     void commitTextEditor();
     void cancelTextEditor();
 
@@ -60,12 +66,21 @@ private:
 
     Tool m_activeTool = Tool::Selection;
     qreal m_zoom = 1.0;
+    QColor m_currentColor = QColor(200, 205, 215);
+    bool m_colorExplicitlySet = false;
 
-    // Glisser en cours : déplacement d'une forme sélectionnée.
+    // Sélection courante (multi-sélection via Maj+clic ou lasso).
+    QVector<agdraw::engine::Shape *> m_selection;
+
+    // Glisser en cours : déplacement de la sélection.
     bool m_dragging = false;
     QPointF m_dragStart;
     QPointF m_lastMovePos;
-    agdraw::engine::Shape *m_selectedShape = nullptr;
+
+    // Glisser en cours : sélection au lasso (clic sur zone vide).
+    bool m_rubberBanding = false;
+    QPointF m_rubberBandStart;
+    QRectF m_rubberBandRect;
 
     // Glisser en cours : création d'un rectangle/ellipse (aperçu seulement,
     // la forme n'existe dans le document qu'au relâchement).
@@ -81,7 +96,10 @@ private:
     bool m_panning = false;
     QPoint m_lastPanPoint;
 
-    QVector<QPointF> m_penPoints;
+    // Plume : nœuds déjà posés (point + poignée optionnelle pour une
+    // courbe de Bézier) en attente de validation par double-clic.
+    QVector<agdraw::engine::PathNode> m_penNodes;
+    bool m_penDraggingHandle = false;
 
     QLineEdit *m_textEditor = nullptr;
     QPointF m_textEditorScenePos;

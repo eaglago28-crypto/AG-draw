@@ -9,6 +9,21 @@ Shape *Layer::addShape(std::unique_ptr<Shape> shape) {
     return m_shapes.back().get();
 }
 
+Shape *Layer::insertShape(size_t index, std::unique_ptr<Shape> shape) {
+    index = std::min(index, m_shapes.size());
+    auto it = m_shapes.insert(m_shapes.begin() + static_cast<std::ptrdiff_t>(index), std::move(shape));
+    return it->get();
+}
+
+size_t Layer::indexOf(Shape *shape) const {
+    for (size_t i = 0; i < m_shapes.size(); ++i) {
+        if (m_shapes[i].get() == shape) {
+            return i;
+        }
+    }
+    return m_shapes.size();
+}
+
 void Layer::removeShape(Shape *shape) {
     m_shapes.erase(
         std::remove_if(m_shapes.begin(), m_shapes.end(),

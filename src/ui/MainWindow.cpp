@@ -30,10 +30,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     m_layersPanel = new LayersPanel(this);
     addDockWidget(Qt::RightDockWidgetArea, m_layersPanel);
+    m_layersPanel->setDocument(&m_canvas->document());
 
-    connect(m_colorPalette, &ColorPalette::colorSelected, this, [this](const QColor &color) {
-        statusBar()->showMessage(tr("Couleur sélectionnée : %1").arg(color.name()), 3000);
-    });
+    connect(m_colorPalette, &ColorPalette::colorSelected, m_canvas, &CanvasView::setActiveColor);
     connect(m_canvas, &CanvasView::statusMessage, this, [this](const QString &text) {
         statusBar()->showMessage(text, 3000);
     });

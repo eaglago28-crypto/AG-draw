@@ -4,20 +4,27 @@
 
 class QListWidget;
 
+namespace agdraw::engine {
+class Document;
+}
+
 namespace agdraw::ui {
 
-// Panneau des calques à droite : liste, ajout, suppression, visibilité.
+// Panneau des calques à droite : reflète le vrai agdraw::engine::Document
+// (liste, ajout, sélection du calque actif).
 class LayersPanel : public QDockWidget {
     Q_OBJECT
 
 public:
     explicit LayersPanel(QWidget *parent = nullptr);
 
-private:
-    void addLayer(const QString &name);
+    void setDocument(agdraw::engine::Document *document);
 
+private:
+    void refresh();
+
+    agdraw::engine::Document *m_document = nullptr;
     QListWidget *m_list;
-    int m_layerCount = 0;
 };
 
 } // namespace agdraw::ui

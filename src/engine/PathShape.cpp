@@ -8,12 +8,18 @@ namespace agdraw::engine {
 
 QPainterPath PathShape::toPath() const {
     QPainterPath path;
-    if (points.isEmpty()) {
+    if (nodes.isEmpty()) {
         return path;
     }
-    path.moveTo(points.first());
-    for (int i = 1; i < points.size(); ++i) {
-        path.lineTo(points[i]);
+    path.moveTo(nodes.first().point);
+    for (int i = 1; i < nodes.size(); ++i) {
+        const PathNode &prev = nodes[i - 1];
+        const PathNode &cur = nodes[i];
+        if (prev.handle.isNull() && cur.handle.isNull()) {
+            path.lineTo(cur.point);
+        } else {
+            path.cubicTo(prev.point + prev.handle, cur.point - cur.handle, cur.point);
+        }
     }
     return path;
 }
@@ -29,8 +35,8 @@ bool PathShape::contains(const QPointF &point) const {
 }
 
 void PathShape::translate(const QPointF &delta) {
-    for (QPointF &point : points) {
-        point += delta;
+    for (PathNode &node : nodes) {
+        node.point += delta;
     }
 }
 

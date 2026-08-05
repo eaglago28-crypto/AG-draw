@@ -36,6 +36,15 @@ Shape *Document::shapeAt(const QPointF &point) const {
     return nullptr;
 }
 
+Layer *Document::findLayerOf(Shape *shape) const {
+    for (const auto &layer : m_layers) {
+        if (layer->indexOf(shape) != layer->shapes().size()) {
+            return layer.get();
+        }
+    }
+    return nullptr;
+}
+
 void Document::paint(QPainter &painter) const {
     for (const auto &layer : m_layers) {
         layer->paint(painter);

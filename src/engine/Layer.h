@@ -24,8 +24,10 @@ public:
     void setLocked(bool locked) { m_locked = locked; }
 
     Shape *addShape(std::unique_ptr<Shape> shape);
+    Shape *insertShape(size_t index, std::unique_ptr<Shape> shape);
     void removeShape(Shape *shape);
     std::unique_ptr<Shape> takeShape(Shape *shape);
+    size_t indexOf(Shape *shape) const;
 
     const std::vector<std::unique_ptr<Shape>> &shapes() const { return m_shapes; }
 
