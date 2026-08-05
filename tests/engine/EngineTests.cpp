@@ -27,6 +27,7 @@ private slots:
     void shadowAndGradientUndo();
     void agdRoundTripPreservesEffects();
     void hiddenLockedLayerIgnoredByHitTest();
+    void agdRoundTripPreservesMultiLineText();
 };
 
 void EngineTests::addShapeUndo() {
@@ -220,6 +221,25 @@ void EngineTests::hiddenLockedLayerIgnoredByHitTest() {
     hiddenLayer.setVisible(true);
     hiddenLayer.setLocked(true);
     QVERIFY(doc.shapeAt(QPointF(10, 10)) == nullptr);
+}
+
+void EngineTests::agdRoundTripPreservesMultiLineText() {
+    Document doc;
+    doc.activeLayer()->addShape(std::make_unique<TextShape>(QPointF(5, 10), QStringLiteral("Ligne 1\nLigne 2\nLigne 3")));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("multiline.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    auto *text = dynamic_cast<TextShape *>(loaded.activeLayer()->shapes().front().get());
+    QVERIFY(text);
+    QCOMPARE(text->text, QStringLiteral("Ligne 1\nLigne 2\nLigne 3"));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

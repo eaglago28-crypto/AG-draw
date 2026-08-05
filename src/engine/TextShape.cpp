@@ -15,8 +15,16 @@ QFont makeFont(qreal pointSize) {
 } // namespace
 
 QRectF TextShape::bounds() const {
+    const QStringList lines = text.split(QLatin1Char('\n'));
     QFontMetricsF metrics(makeFont(fontPointSize));
-    return metrics.boundingRect(text).translated(position);
+
+    QRectF result;
+    for (int i = 0; i < lines.size(); ++i) {
+        QRectF lineRect = metrics.boundingRect(lines.at(i));
+        lineRect.translate(position.x(), position.y() + i * metrics.lineSpacing());
+        result = (i == 0) ? lineRect : result.united(lineRect);
+    }
+    return result;
 }
 
 bool TextShape::contains(const QPointF &point) const {
@@ -26,7 +34,12 @@ bool TextShape::contains(const QPointF &point) const {
 void TextShape::paint(QPainter &painter) const {
     painter.setFont(makeFont(fontPointSize));
     painter.setPen(fillColor);
-    painter.drawText(position, text);
+
+    const QFontMetricsF metrics(painter.font());
+    const QStringList lines = text.split(QLatin1Char('\n'));
+    for (int i = 0; i < lines.size(); ++i) {
+        painter.drawText(QPointF(position.x(), position.y() + i * metrics.lineSpacing()), lines.at(i));
+    }
 }
 
 } // namespace agdraw::engine

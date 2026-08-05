@@ -1,5 +1,6 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QPlainTextEdit>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QToolBar>
@@ -12,6 +13,7 @@
 #include "MainWindow.h"
 #include "PropertiesBar.h"
 #include "RectShape.h"
+#include "TextShape.h"
 #include "ToolBox.h"
 
 using namespace agdraw::ui;
@@ -21,6 +23,7 @@ namespace {
 // Les outils sont créés dans cet ordre par ToolBox (voir ToolBox.cpp).
 constexpr int kSelectionIndex = 0;
 constexpr int kRectangleIndex = 1;
+constexpr int kTextIndex = 3;
 } // namespace
 
 class UiTests : public QObject {
@@ -34,6 +37,8 @@ private slots:
     void layersPanelTogglesVisibility();
     void alignSelectionAligns();
     void distributeSelectionSpacesEvenly();
+    void multiLineTextBoundsTallerThanSingleLine();
+    void textToolCreatesMultiLineShape();
     void fileRoundTripThroughCanvas();
 };
 
@@ -236,6 +241,44 @@ void UiTests::distributeSelectionSpacesEvenly() {
     const qreal centerB = b->bounds().center().x();
     const qreal centerC = c->bounds().center().x();
     QCOMPARE(centerB - centerA, centerC - centerB);
+}
+
+void UiTests::multiLineTextBoundsTallerThanSingleLine() {
+    TextShape singleLine(QPointF(0, 0), QStringLiteral("AG Draw"));
+    TextShape threeLines(QPointF(0, 0), QStringLiteral("AG Draw\nest\nun logiciel"));
+
+    QVERIFY(threeLines.bounds().height() > singleLine.bounds().height() * 2);
+    // La largeur ne doit pas exploser : chaque ligne est bornée indépendamment.
+    QVERIFY(threeLines.bounds().width() < singleLine.bounds().width() * 5);
+}
+
+void UiTests::textToolCreatesMultiLineShape() {
+    MainWindow window;
+    window.show();
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    QVERIFY(canvas && toolbox);
+    canvas->setFocus();
+
+    toolbox->actions()[kTextIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(100, 100));
+
+    auto *editor = canvas->findChild<QPlainTextEdit *>();
+    QVERIFY(editor);
+    QVERIFY(editor->isVisible());
+
+    QTest::keyClicks(editor, QStringLiteral("Ligne 1"));
+    QTest::keyClick(editor, Qt::Key_Return, Qt::ShiftModifier); // saut de ligne, ne valide pas
+    QTest::keyClicks(editor, QStringLiteral("Ligne 2"));
+    QCOMPARE(canvas->document().activeLayer()->shapeCount(), size_t(0)); // pas encore validé
+
+    QTest::keyClick(editor, Qt::Key_Return); // valide (sans Maj)
+    QVERIFY(!editor->isVisible());
+
+    QCOMPARE(canvas->document().activeLayer()->shapeCount(), size_t(1));
+    auto *text = dynamic_cast<TextShape *>(canvas->document().activeLayer()->shapes().front().get());
+    QVERIFY(text);
+    QCOMPARE(text->text, QStringLiteral("Ligne 1\nLigne 2"));
 }
 
 void UiTests::fileRoundTripThroughCanvas() {

@@ -6,9 +6,10 @@
 
 namespace agdraw::engine {
 
-// Bloc de texte simple : position = point de départ (ligne de base),
-// une seule ligne pour l'instant. La mise en page avancée (multi-ligne,
-// texte sur chemin) arrivera avec le module Texte dédié.
+// Bloc de texte : position = point de départ (ligne de base de la première
+// ligne) ; les sauts de ligne ('\n') sont pris en charge. La mise en page
+// avancée (styles de caractères/paragraphes, texte sur chemin) arrivera
+// avec le module Texte dédié.
 class TextShape : public Shape {
 public:
     TextShape(QPointF position, QString text) : position(position), text(std::move(text)) {

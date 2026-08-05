@@ -9,7 +9,7 @@
 #include "PathShape.h"
 #include "ToolBox.h"
 
-class QLineEdit;
+class QPlainTextEdit;
 
 namespace agdraw::engine {
 class Document;
@@ -119,7 +119,7 @@ private:
     QVector<agdraw::engine::PathNode> m_penNodes;
     bool m_penDraggingHandle = false;
 
-    QLineEdit *m_textEditor = nullptr;
+    QPlainTextEdit *m_textEditor = nullptr;
     QPointF m_textEditorScenePos;
 };
 

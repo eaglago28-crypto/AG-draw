@@ -14,7 +14,7 @@
 
 #include <QGraphicsScene>
 #include <QKeyEvent>
-#include <QLineEdit>
+#include <QPlainTextEdit>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -69,10 +69,10 @@ void CanvasView::setupScene() {
 }
 
 void CanvasView::setupTextEditor() {
-    m_textEditor = new QLineEdit(viewport());
+    m_textEditor = new QPlainTextEdit(viewport());
     m_textEditor->hide();
+    m_textEditor->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_textEditor->installEventFilter(this);
-    connect(m_textEditor, &QLineEdit::returnPressed, this, &CanvasView::commitTextEditor);
 }
 
 void CanvasView::setActiveTool(Tool tool) {
@@ -568,10 +568,11 @@ void CanvasView::mousePressEvent(QMouseEvent *event) {
         case Tool::Text: {
             m_textEditorScenePos = scenePos;
             const QPoint viewPos = event->pos();
-            m_textEditor->setGeometry(viewPos.x(), viewPos.y(), 220, 30);
+            m_textEditor->setGeometry(viewPos.x(), viewPos.y(), 260, 90);
             m_textEditor->clear();
             m_textEditor->show();
             m_textEditor->setFocus();
+            emit statusMessage(tr("Texte : Entrée valide, Maj+Entrée pour une nouvelle ligne, Échap annule"));
             break;
         }
     }
@@ -829,6 +830,11 @@ bool CanvasView::eventFilter(QObject *watched, QEvent *event) {
             cancelTextEditor();
             return true;
         }
+        if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
+            !(keyEvent->modifiers() & Qt::ShiftModifier)) {
+            commitTextEditor();
+            return true;
+        }
     }
     return QGraphicsView::eventFilter(watched, event);
 }
@@ -837,7 +843,7 @@ void CanvasView::commitTextEditor() {
     if (!m_textEditor->isVisible()) {
         return;
     }
-    const QString text = m_textEditor->text().trimmed();
+    const QString text = m_textEditor->toPlainText().trimmed();
     m_textEditor->hide();
     if (!text.isEmpty()) {
         auto shape = std::make_unique<engine::TextShape>(m_textEditorScenePos, text);
