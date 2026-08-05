@@ -5,6 +5,7 @@
 #include <QVector>
 #include <memory>
 
+#include "Arrange.h"
 #include "PathShape.h"
 #include "ToolBox.h"
 
@@ -45,11 +46,14 @@ public slots:
     void setSelectionStrokeWidth(double width);
     void setSelectionShadow(bool enabled);
     void setSelectionGradient(bool enabled);
+    void alignSelection(agdraw::ui::AlignMode mode);
+    void distributeSelection(agdraw::ui::DistributeMode mode);
     void refreshView();
 
 signals:
     void statusMessage(const QString &text);
     void selectionChanged(agdraw::engine::Shape *primary);
+    void selectionCountChanged(int count);
     void toolShortcutRequested(agdraw::ui::Tool tool);
 
 protected:

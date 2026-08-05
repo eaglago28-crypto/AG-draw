@@ -5,6 +5,7 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QLabel>
+#include <QToolButton>
 
 namespace agdraw::ui {
 
@@ -50,6 +51,42 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     m_gradientCheck->setEnabled(false);
     connect(m_gradientCheck, &QCheckBox::toggled, this, &PropertiesBar::gradientToggled);
     addWidget(m_gradientCheck);
+
+    addSeparator();
+
+    addAlignButton(QStringLiteral("⟸"), tr("Aligner à gauche"), AlignMode::Left);
+    addAlignButton(QStringLiteral("⟺"), tr("Centrer horizontalement"), AlignMode::HCenter);
+    addAlignButton(QStringLiteral("⟹"), tr("Aligner à droite"), AlignMode::Right);
+    addAlignButton(QStringLiteral("⤒"), tr("Aligner en haut"), AlignMode::Top);
+    addAlignButton(QStringLiteral("⇳"), tr("Centrer verticalement"), AlignMode::VCenter);
+    addAlignButton(QStringLiteral("⤓"), tr("Aligner en bas"), AlignMode::Bottom);
+
+    addSeparator();
+
+    addDistributeButton(QStringLiteral("⇔"), tr("Distribuer horizontalement"), DistributeMode::Horizontal);
+    addDistributeButton(QStringLiteral("⇕"), tr("Distribuer verticalement"), DistributeMode::Vertical);
+}
+
+QToolButton *PropertiesBar::addAlignButton(const QString &text, const QString &tooltip, AlignMode mode) {
+    auto *button = new QToolButton(this);
+    button->setText(text);
+    button->setToolTip(tooltip);
+    button->setEnabled(false);
+    connect(button, &QToolButton::clicked, this, [this, mode] { emit alignRequested(mode); });
+    addWidget(button);
+    m_alignButtons.append(button);
+    return button;
+}
+
+QToolButton *PropertiesBar::addDistributeButton(const QString &text, const QString &tooltip, DistributeMode mode) {
+    auto *button = new QToolButton(this);
+    button->setText(text);
+    button->setToolTip(tooltip);
+    button->setEnabled(false);
+    connect(button, &QToolButton::clicked, this, [this, mode] { emit distributeRequested(mode); });
+    addWidget(button);
+    m_distributeButtons.append(button);
+    return button;
 }
 
 void PropertiesBar::setActiveTool(Tool tool) {
@@ -76,6 +113,15 @@ void PropertiesBar::setSelectedShape(engine::Shape *shape) {
         m_shadowCheck->setChecked(false);
         m_gradientCheck->setEnabled(false);
         m_gradientCheck->setChecked(false);
+    }
+}
+
+void PropertiesBar::setSelectionCount(int count) {
+    for (QToolButton *button : m_alignButtons) {
+        button->setEnabled(count >= 2);
+    }
+    for (QToolButton *button : m_distributeButtons) {
+        button->setEnabled(count >= 3);
     }
 }
 

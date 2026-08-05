@@ -10,6 +10,8 @@
 #include "RectShape.h"
 #include "TextShape.h"
 
+#include <algorithm>
+
 #include <QGraphicsScene>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -116,6 +118,7 @@ void CanvasView::applyCurrentColor(engine::Shape *shape) const {
 void CanvasView::setSelection(QVector<engine::Shape *> newSelection) {
     m_selection = std::move(newSelection);
     emit selectionChanged(m_selection.size() == 1 ? m_selection.first() : nullptr);
+    emit selectionCountChanged(m_selection.size());
 }
 
 void CanvasView::reorderSelection(bool forward, bool toExtreme) {
@@ -225,6 +228,82 @@ void CanvasView::setSelectionGradient(bool enabled) {
         m_document->undoStack()->endMacro();
     }
     m_documentItem->update();
+}
+
+void CanvasView::alignSelection(AlignMode mode) {
+    if (m_selection.size() < 2) {
+        return;
+    }
+
+    QRectF unionBounds = m_selection.first()->bounds();
+    for (engine::Shape *shape : m_selection) {
+        unionBounds = unionBounds.united(shape->bounds());
+    }
+
+    QVector<QPointF> deltas;
+    deltas.reserve(m_selection.size());
+    for (engine::Shape *shape : m_selection) {
+        const QRectF bounds = shape->bounds();
+        QPointF delta(0, 0);
+        switch (mode) {
+            case AlignMode::Left: delta.setX(unionBounds.left() - bounds.left()); break;
+            case AlignMode::HCenter: delta.setX(unionBounds.center().x() - bounds.center().x()); break;
+            case AlignMode::Right: delta.setX(unionBounds.right() - bounds.right()); break;
+            case AlignMode::Top: delta.setY(unionBounds.top() - bounds.top()); break;
+            case AlignMode::VCenter: delta.setY(unionBounds.center().y() - bounds.center().y()); break;
+            case AlignMode::Bottom: delta.setY(unionBounds.bottom() - bounds.bottom()); break;
+        }
+        deltas.append(delta);
+    }
+
+    m_document->undoStack()->beginMacro(tr("Aligner"));
+    for (int i = 0; i < m_selection.size(); ++i) {
+        if (!deltas[i].isNull()) {
+            m_document->undoStack()->push(new engine::TranslateShapeCommand(m_selection[i], deltas[i]));
+        }
+    }
+    m_document->undoStack()->endMacro();
+    m_documentItem->update();
+    emit statusMessage(tr("Aligné"));
+}
+
+void CanvasView::distributeSelection(DistributeMode mode) {
+    if (m_selection.size() < 3) {
+        return;
+    }
+
+    QVector<engine::Shape *> sorted = m_selection;
+    if (mode == DistributeMode::Horizontal) {
+        std::sort(sorted.begin(), sorted.end(), [](engine::Shape *a, engine::Shape *b) {
+            return a->bounds().center().x() < b->bounds().center().x();
+        });
+    } else {
+        std::sort(sorted.begin(), sorted.end(), [](engine::Shape *a, engine::Shape *b) {
+            return a->bounds().center().y() < b->bounds().center().y();
+        });
+    }
+
+    const int count = sorted.size();
+    const qreal firstCenter = mode == DistributeMode::Horizontal ? sorted.first()->bounds().center().x()
+                                                                   : sorted.first()->bounds().center().y();
+    const qreal lastCenter =
+        mode == DistributeMode::Horizontal ? sorted.last()->bounds().center().x() : sorted.last()->bounds().center().y();
+    const qreal step = (lastCenter - firstCenter) / (count - 1);
+
+    m_document->undoStack()->beginMacro(tr("Distribuer"));
+    for (int i = 1; i < count - 1; ++i) {
+        const qreal target = firstCenter + step * i;
+        const qreal current =
+            mode == DistributeMode::Horizontal ? sorted[i]->bounds().center().x() : sorted[i]->bounds().center().y();
+        const qreal offset = target - current;
+        if (offset != 0.0) {
+            const QPointF delta = mode == DistributeMode::Horizontal ? QPointF(offset, 0) : QPointF(0, offset);
+            m_document->undoStack()->push(new engine::TranslateShapeCommand(sorted[i], delta));
+        }
+    }
+    m_document->undoStack()->endMacro();
+    m_documentItem->update();
+    emit statusMessage(tr("Distribué"));
 }
 
 void CanvasView::refreshView() {

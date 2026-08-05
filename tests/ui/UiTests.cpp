@@ -32,6 +32,8 @@ private slots:
     void propertiesBarEditsStrokeWidth();
     void propertiesBarTogglesShadowAndGradient();
     void layersPanelTogglesVisibility();
+    void alignSelectionAligns();
+    void distributeSelectionSpacesEvenly();
     void fileRoundTripThroughCanvas();
 };
 
@@ -174,6 +176,66 @@ void UiTests::layersPanelTogglesVisibility() {
     visibilityButton->setChecked(true);
     QVERIFY(layer->isVisible());
     QVERIFY(canvas->document().shapeAt(QPointF(10, 10)) != nullptr);
+}
+
+void UiTests::alignSelectionAligns() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    QVERIFY(canvas && toolbox);
+    canvas->setFocus();
+
+    Layer *layer = canvas->document().activeLayer();
+    Shape *a = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+    Shape *b = layer->addShape(std::make_unique<RectShape>(QRectF(100, 50, 20, 20)));
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(10, 10)));
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::ShiftModifier, canvas->mapFromScene(QPointF(110, 60)));
+
+    canvas->alignSelection(AlignMode::Left);
+    QCOMPARE(a->bounds().left(), b->bounds().left());
+
+    canvas->document().undoStack()->undo();
+    QCOMPARE(a->bounds().left(), 0.0);
+    QCOMPARE(b->bounds().left(), 100.0);
+}
+
+void UiTests::distributeSelectionSpacesEvenly() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    Layer *layer = canvas->document().activeLayer();
+    Shape *a = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+    Shape *b = layer->addShape(std::make_unique<RectShape>(QRectF(50, 0, 20, 20))); // pas espacé également
+    Shape *c = layer->addShape(std::make_unique<RectShape>(QRectF(200, 0, 20, 20)));
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(10, 10)));
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::ShiftModifier, canvas->mapFromScene(QPointF(60, 10)));
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::ShiftModifier, canvas->mapFromScene(QPointF(210, 10)));
+
+    // Vérifie le câblage réel du bouton (identifié par son infobulle), pas
+    // seulement l'appel direct au slot.
+    QToolButton *distributeButton = nullptr;
+    for (QToolButton *button : propertiesBar->findChildren<QToolButton *>()) {
+        if (button->toolTip() == QObject::tr("Distribuer horizontalement")) {
+            distributeButton = button;
+            break;
+        }
+    }
+    QVERIFY(distributeButton);
+    QVERIFY(distributeButton->isEnabled());
+    QTest::mouseClick(distributeButton, Qt::LeftButton);
+
+    const qreal centerA = a->bounds().center().x();
+    const qreal centerB = b->bounds().center().x();
+    const qreal centerC = c->bounds().center().x();
+    QCOMPARE(centerB - centerA, centerC - centerB);
 }
 
 void UiTests::fileRoundTripThroughCanvas() {
