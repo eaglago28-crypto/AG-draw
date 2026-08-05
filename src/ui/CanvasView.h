@@ -14,6 +14,7 @@ class QPlainTextEdit;
 namespace agdraw::engine {
 class Document;
 class Layer;
+class Page;
 class Shape;
 }
 
@@ -39,6 +40,7 @@ public:
     bool loadFromFile(const QString &path, QString *errorMessage = nullptr);
     bool exportToPng(const QString &path, QString *errorMessage = nullptr);
     bool isEmpty() const;
+    void goToPage(agdraw::engine::Page *page);
 
 public slots:
     void setActiveTool(agdraw::ui::Tool tool);

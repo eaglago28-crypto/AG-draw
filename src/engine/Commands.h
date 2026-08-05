@@ -9,6 +9,8 @@
 namespace agdraw::engine {
 
 class Layer;
+class Document;
+class Page;
 
 // Ajoute une forme déjà construite à un calque (annulable). L'appelant
 // perd la propriété de la forme au profit de la commande / du calque.
@@ -155,6 +157,38 @@ private:
     Shape *m_shape;
     bool m_oldEnabled;
     bool m_newEnabled;
+};
+
+// Ajoute une page déjà construite au document (annulable).
+class AddPageCommand : public QUndoCommand {
+public:
+    AddPageCommand(Document *document, std::unique_ptr<Page> page, const QString &text);
+
+    void redo() override;
+    void undo() override;
+
+    Page *pagePtr() const { return m_pagePtr; }
+
+private:
+    Document *m_document;
+    std::unique_ptr<Page> m_page;
+    Page *m_pagePtr;
+};
+
+// Retire une page existante du document (annulable) en conservant sa
+// position d'origine dans la liste pour une restauration fidèle.
+class RemovePageCommand : public QUndoCommand {
+public:
+    RemovePageCommand(Document *document, Page *page, const QString &text);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Document *m_document;
+    Page *m_pagePtr;
+    std::unique_ptr<Page> m_page;
+    size_t m_index = 0;
 };
 
 } // namespace agdraw::engine

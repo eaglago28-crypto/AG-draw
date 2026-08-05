@@ -1,6 +1,8 @@
 #include "Commands.h"
 
+#include "Document.h"
 #include "Layer.h"
+#include "Page.h"
 
 namespace agdraw::engine {
 
@@ -115,6 +117,33 @@ void SetGradientCommand::redo() {
 
 void SetGradientCommand::undo() {
     m_shape->gradientEnabled = m_oldEnabled;
+}
+
+AddPageCommand::AddPageCommand(Document *document, std::unique_ptr<Page> page, const QString &text)
+    : QUndoCommand(text), m_document(document), m_page(std::move(page)), m_pagePtr(m_page.get()) {}
+
+void AddPageCommand::redo() {
+    if (m_page) {
+        m_document->addPage(std::move(m_page));
+    } else {
+        m_document->setActivePage(m_pagePtr);
+    }
+}
+
+void AddPageCommand::undo() {
+    m_page = m_document->takePage(m_pagePtr);
+}
+
+RemovePageCommand::RemovePageCommand(Document *document, Page *page, const QString &text)
+    : QUndoCommand(text), m_document(document), m_pagePtr(page) {}
+
+void RemovePageCommand::redo() {
+    m_index = m_document->indexOfPage(m_pagePtr);
+    m_page = m_document->takePage(m_pagePtr);
+}
+
+void RemovePageCommand::undo() {
+    m_pagePtr = m_document->insertPage(m_index, std::move(m_page));
 }
 
 } // namespace agdraw::engine

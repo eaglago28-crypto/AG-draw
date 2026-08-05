@@ -8,6 +8,7 @@ class CanvasView;
 class ToolBox;
 class PropertiesBar;
 class LayersPanel;
+class PagesPanel;
 class ColorPalette;
 
 // Fenêtre principale : assemble tous les panneaux de l'écran de travail.
@@ -31,6 +32,7 @@ private:
     ToolBox *m_toolBox;
     PropertiesBar *m_propertiesBar;
     LayersPanel *m_layersPanel;
+    PagesPanel *m_pagesPanel;
     ColorPalette *m_colorPalette;
     QString m_currentFilePath;
 };

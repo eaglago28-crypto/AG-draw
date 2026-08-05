@@ -1,5 +1,6 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QListWidget>
 #include <QPlainTextEdit>
 #include <QTemporaryDir>
 #include <QTest>
@@ -11,6 +12,8 @@
 #include "Layer.h"
 #include "LayersPanel.h"
 #include "MainWindow.h"
+#include "Page.h"
+#include "PagesPanel.h"
 #include "PropertiesBar.h"
 #include "RectShape.h"
 #include "TextShape.h"
@@ -39,6 +42,8 @@ private slots:
     void distributeSelectionSpacesEvenly();
     void multiLineTextBoundsTallerThanSingleLine();
     void textToolCreatesMultiLineShape();
+    void pagesPanelAddsAndNavigatesPages();
+    void newDocumentResetsToOnePage();
     void fileRoundTripThroughCanvas();
 };
 
@@ -279,6 +284,43 @@ void UiTests::textToolCreatesMultiLineShape() {
     auto *text = dynamic_cast<TextShape *>(canvas->document().activeLayer()->shapes().front().get());
     QVERIFY(text);
     QCOMPARE(text->text, QStringLiteral("Ligne 1\nLigne 2"));
+}
+
+void UiTests::pagesPanelAddsAndNavigatesPages() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *pagesPanel = window.findChild<PagesPanel *>("PagesPanel");
+    QVERIFY(canvas && pagesPanel);
+
+    QCOMPARE(canvas->document().pages().size(), size_t(1));
+
+    auto *toolbar = pagesPanel->findChild<QToolBar *>();
+    QVERIFY(toolbar && !toolbar->actions().isEmpty());
+    toolbar->actions().first()->trigger(); // "+ Page"
+
+    QCOMPARE(canvas->document().pages().size(), size_t(2));
+    // La nouvelle page devient active et la vue y navigue.
+    QCOMPARE(canvas->document().activePage(), canvas->document().pages().back().get());
+
+    auto *list = pagesPanel->findChild<QListWidget *>();
+    QVERIFY(list);
+    QCOMPARE(list->count(), 2);
+
+    list->setCurrentRow(0);
+    QCOMPARE(canvas->document().activePage(), canvas->document().pages().front().get());
+}
+
+void UiTests::newDocumentResetsToOnePage() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    QVERIFY(canvas);
+
+    canvas->document().addPage(QStringLiteral("Extra"), QRectF(0, 1200, 794, 1123));
+    QCOMPARE(canvas->document().pages().size(), size_t(2));
+
+    canvas->newDocument();
+    QCOMPARE(canvas->document().pages().size(), size_t(1));
+    QCOMPARE(canvas->document().activePage()->name(), QStringLiteral("Page 1"));
 }
 
 void UiTests::fileRoundTripThroughCanvas() {

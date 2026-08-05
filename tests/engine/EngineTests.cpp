@@ -6,6 +6,7 @@
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
+#include "Page.h"
 #include "PathShape.h"
 #include "RectShape.h"
 #include "TextShape.h"
@@ -28,6 +29,10 @@ private slots:
     void agdRoundTripPreservesEffects();
     void hiddenLockedLayerIgnoredByHitTest();
     void agdRoundTripPreservesMultiLineText();
+    void documentHasOneDefaultPage();
+    void addPageUndoRedo();
+    void removePageUndoRestoresPosition();
+    void agdRoundTripPreservesPages();
 };
 
 void EngineTests::addShapeUndo() {
@@ -240,6 +245,71 @@ void EngineTests::agdRoundTripPreservesMultiLineText() {
     auto *text = dynamic_cast<TextShape *>(loaded.activeLayer()->shapes().front().get());
     QVERIFY(text);
     QCOMPARE(text->text, QStringLiteral("Ligne 1\nLigne 2\nLigne 3"));
+}
+
+void EngineTests::documentHasOneDefaultPage() {
+    Document doc;
+    QCOMPARE(doc.pages().size(), size_t(1));
+    QVERIFY(doc.activePage() != nullptr);
+    QCOMPARE(doc.activePage()->name(), QStringLiteral("Page 1"));
+    QCOMPARE(doc.activePage()->rect(), QRectF(0, 0, 794, 1123));
+}
+
+void EngineTests::addPageUndoRedo() {
+    Document doc;
+    QCOMPARE(doc.pages().size(), size_t(1));
+
+    auto *command = new AddPageCommand(&doc, std::make_unique<Page>(QStringLiteral("Page 2"), QRectF(0, 1200, 794, 1123)),
+                                        QStringLiteral("Page"));
+    doc.undoStack()->push(command);
+    QCOMPARE(doc.pages().size(), size_t(2));
+    QCOMPARE(doc.activePage(), command->pagePtr());
+
+    doc.undoStack()->undo();
+    QCOMPARE(doc.pages().size(), size_t(1));
+
+    doc.undoStack()->redo();
+    QCOMPARE(doc.pages().size(), size_t(2));
+}
+
+void EngineTests::removePageUndoRestoresPosition() {
+    Document doc;
+    Page *first = doc.activePage();
+    Page &second = doc.addPage(QStringLiteral("Page 2"), QRectF(0, 1200, 794, 1123));
+    Page &third = doc.addPage(QStringLiteral("Page 3"), QRectF(0, 2400, 794, 1123));
+    QCOMPARE(doc.indexOfPage(&second), size_t(1));
+
+    doc.undoStack()->push(new RemovePageCommand(&doc, &second, QStringLiteral("Supprimer")));
+    QCOMPARE(doc.pages().size(), size_t(2));
+
+    doc.undoStack()->undo();
+    QCOMPARE(doc.pages().size(), size_t(3));
+    QCOMPARE(doc.indexOfPage(first), size_t(0));
+    QCOMPARE(doc.indexOfPage(&second), size_t(1));
+    QCOMPARE(doc.indexOfPage(&third), size_t(2));
+}
+
+void EngineTests::agdRoundTripPreservesPages() {
+    Document doc;
+    doc.clearPages();
+    doc.addPage(QStringLiteral("Couverture"), QRectF(0, 0, 794, 1123));
+    doc.addPage(QStringLiteral("Intérieur"), QRectF(0, 1200, 1000, 700));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("pages.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    QCOMPARE(loaded.pages().size(), size_t(2));
+    QCOMPARE(loaded.pages()[0]->name(), QStringLiteral("Couverture"));
+    QCOMPARE(loaded.pages()[0]->rect(), QRectF(0, 0, 794, 1123));
+    QCOMPARE(loaded.pages()[1]->name(), QStringLiteral("Intérieur"));
+    QCOMPARE(loaded.pages()[1]->rect(), QRectF(0, 1200, 1000, 700));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

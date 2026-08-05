@@ -3,6 +3,7 @@
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
+#include "Page.h"
 #include "PathShape.h"
 #include "RectShape.h"
 #include "TextShape.h"
@@ -177,10 +178,22 @@ bool saveAgd(const engine::Document &document, const QString &path, QString *err
         layersArray.append(layerObj);
     }
 
+    QJsonArray pagesArray;
+    for (const auto &page : document.pages()) {
+        QJsonObject pageObj;
+        pageObj["name"] = page->name();
+        pageObj["x"] = page->rect().x();
+        pageObj["y"] = page->rect().y();
+        pageObj["w"] = page->rect().width();
+        pageObj["h"] = page->rect().height();
+        pagesArray.append(pageObj);
+    }
+
     QJsonObject root;
     root["format"] = "AG Draw";
     root["version"] = 1;
     root["layers"] = layersArray;
+    root["pages"] = pagesArray;
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -229,6 +242,21 @@ bool loadAgd(engine::Document &document, const QString &path, QString *errorMess
     if (document.layers().empty()) {
         document.addLayer(QObject::tr("Calque 1"));
     }
+
+    document.clearPages();
+    const QJsonArray pagesArray = root.value("pages").toArray();
+    for (const QJsonValue &pageValue : pagesArray) {
+        const QJsonObject pageObj = pageValue.toObject();
+        document.addPage(pageObj.value("name").toString(QObject::tr("Page")),
+                          QRectF(pageObj.value("x").toDouble(), pageObj.value("y").toDouble(),
+                                 pageObj.value("w").toDouble(794), pageObj.value("h").toDouble(1123)));
+    }
+    if (document.pages().empty()) {
+        // Fichier sans page (ancien format ou fichier malformé) : page de
+        // secours pour garder le document utilisable.
+        document.addPage(QObject::tr("Page 1"), QRectF(0, 0, 794, 1123));
+    }
+
     document.undoStack()->clear();
     return true;
 }

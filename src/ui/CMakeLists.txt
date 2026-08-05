@@ -15,6 +15,8 @@ add_library(ag_ui STATIC
     PropertiesBar.h
     LayersPanel.cpp
     LayersPanel.h
+    PagesPanel.cpp
+    PagesPanel.h
     ColorPalette.cpp
     ColorPalette.h
 )

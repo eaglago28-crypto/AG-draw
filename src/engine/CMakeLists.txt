@@ -13,6 +13,7 @@ add_library(ag_engine STATIC
     TextShape.cpp
     Layer.h
     Layer.cpp
+    Page.h
     Document.h
     Document.cpp
     Commands.h

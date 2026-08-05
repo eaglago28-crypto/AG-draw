@@ -6,6 +6,7 @@
 #include "DocumentItem.h"
 #include "EllipseShape.h"
 #include "Layer.h"
+#include "Page.h"
 #include "PngExporter.h"
 #include "RectShape.h"
 #include "TextShape.h"
@@ -56,16 +57,16 @@ void CanvasView::setupScene() {
     auto *scene = new QGraphicsScene(-kSceneExtent, -kSceneExtent, 2 * kSceneExtent, 2 * kSceneExtent, this);
     setScene(scene);
 
-    // Page de travail par défaut (A4 à 96 DPI), pour donner un repère visuel
-    // au centre de la zone infinie.
-    auto *page = scene->addRect(0, 0, 794, 1123, QPen(Qt::NoPen), QBrush(Qt::white));
-    page->setZValue(0);
-
+    // Les pages elles-mêmes (rectangles blancs nommés) sont dessinées par
+    // DocumentItem à partir du modèle Document::pages(), pas codées en dur
+    // ici : un document peut avoir zéro, une ou plusieurs pages.
     m_documentItem = new DocumentItem(*m_document, QRectF(-kSceneExtent, -kSceneExtent, 2 * kSceneExtent, 2 * kSceneExtent));
     m_documentItem->setZValue(1);
     scene->addItem(m_documentItem);
 
-    centerOn(794 / 2.0, 1123 / 2.0);
+    if (engine::Page *page = m_document->activePage()) {
+        centerOn(page->rect().center());
+    }
 }
 
 void CanvasView::setupTextEditor() {
@@ -157,11 +158,16 @@ void CanvasView::reorderSelection(bool forward, bool toExtreme) {
 void CanvasView::newDocument() {
     m_document->clearLayers();
     m_document->addLayer(tr("Calque 1"));
+    m_document->clearPages();
+    m_document->addPage(tr("Page 1"), QRectF(0, 0, 794, 1123));
     m_document->undoStack()->clear();
     setSelection({});
     m_penNodes.clear();
     m_penDraggingHandle = false;
     m_documentItem->update();
+    if (engine::Page *page = m_document->activePage()) {
+        centerOn(page->rect().center());
+    }
     emit statusMessage(tr("Nouveau document"));
 }
 
@@ -182,8 +188,24 @@ bool CanvasView::loadFromFile(const QString &path, QString *errorMessage) {
 }
 
 bool CanvasView::exportToPng(const QString &path, QString *errorMessage) {
-    const QRectF pageRect(0, 0, 794, 1123);
+    engine::Page *page = m_document->activePage();
+    if (!page) {
+        if (errorMessage) {
+            *errorMessage = tr("Aucune page à exporter.");
+        }
+        return false;
+    }
+    const QRectF pageRect = page->rect();
     return io::exportPng(*m_document, path, pageRect, pageRect.size().toSize(), errorMessage);
+}
+
+void CanvasView::goToPage(engine::Page *page) {
+    if (!page) {
+        return;
+    }
+    m_document->setActivePage(page);
+    centerOn(page->rect().center());
+    emit statusMessage(tr("Page : %1").arg(page->name()));
 }
 
 void CanvasView::setSelectionShadow(bool enabled) {

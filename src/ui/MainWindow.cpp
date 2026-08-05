@@ -1,9 +1,12 @@
 #include "MainWindow.h"
 
+#include "Page.h"
+
 #include "CanvasView.h"
 #include "ToolBox.h"
 #include "PropertiesBar.h"
 #include "LayersPanel.h"
+#include "PagesPanel.h"
 #include "ColorPalette.h"
 
 #include <QAction>
@@ -38,6 +41,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     addDockWidget(Qt::RightDockWidgetArea, m_layersPanel);
     m_layersPanel->setDocument(&m_canvas->document());
     connect(m_layersPanel, &LayersPanel::documentChanged, m_canvas, &CanvasView::refreshView);
+
+    m_pagesPanel = new PagesPanel(this);
+    addDockWidget(Qt::RightDockWidgetArea, m_pagesPanel);
+    m_pagesPanel->setDocument(&m_canvas->document());
+    connect(m_pagesPanel, &PagesPanel::documentChanged, m_canvas, &CanvasView::refreshView);
+    connect(m_pagesPanel, &PagesPanel::pageActivated, m_canvas, &CanvasView::goToPage);
 
     connect(m_colorPalette, &ColorPalette::colorSelected, m_canvas, &CanvasView::setActiveColor);
     connect(m_canvas, &CanvasView::statusMessage, this, [this](const QString &text) {
