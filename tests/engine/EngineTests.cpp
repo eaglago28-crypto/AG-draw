@@ -1,6 +1,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <cmath>
+
 #include "AgdDocumentIO.h"
 #include "BrushStroke.h"
 #include "Commands.h"
@@ -40,6 +42,9 @@ private slots:
     void contourUndoRedo();
     void interpolateColorMidpoint();
     void agdRoundTripPreservesContour();
+    void envelopeUndoRedo();
+    void applyEnvelopeIdentityAndWarp();
+    void agdRoundTripPreservesEnvelope();
 };
 
 void EngineTests::addShapeUndo() {
@@ -414,6 +419,87 @@ void EngineTests::agdRoundTripPreservesContour() {
     QCOMPARE(loadedShape->contourSteps, 5);
     QCOMPARE(loadedShape->contourOffset, 6.0);
     QCOMPARE(loadedShape->contourColor, QColor(10, 200, 30));
+}
+
+void EngineTests::envelopeUndoRedo() {
+    Document doc;
+    Shape *rect = doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 20, 20)));
+    QVERIFY(!rect->envelopeEnabled);
+    QVERIFY(rect->envelopeCorners.isEmpty());
+
+    const QVector<QPointF> corners = defaultEnvelopeCorners(rect->bounds());
+    doc.undoStack()->push(new SetEnvelopeCommand(rect, rect->envelopeEnabled, true, rect->envelopeCorners, corners));
+    QVERIFY(rect->envelopeEnabled);
+    QCOMPARE(rect->envelopeCorners, corners);
+
+    doc.undoStack()->undo();
+    QVERIFY(!rect->envelopeEnabled);
+    QVERIFY(rect->envelopeCorners.isEmpty());
+
+    doc.undoStack()->redo();
+    QVERIFY(rect->envelopeEnabled);
+    QCOMPARE(rect->envelopeCorners, corners);
+
+    // Glisser une poignée : SetEnvelopeCornersCommand ne touche que les coins.
+    QVector<QPointF> dragged = corners;
+    dragged[0] = QPointF(5, 5);
+    doc.undoStack()->push(new SetEnvelopeCornersCommand(rect, corners, dragged));
+    QCOMPARE(rect->envelopeCorners[0], QPointF(5, 5));
+    QVERIFY(rect->envelopeEnabled); // inchangé par cette commande
+
+    doc.undoStack()->undo();
+    QCOMPARE(rect->envelopeCorners[0], QPointF(0, 0));
+}
+
+void EngineTests::applyEnvelopeIdentityAndWarp() {
+    const QRectF bounds(0, 0, 10, 10);
+    const QVector<QPointF> identityCorners = defaultEnvelopeCorners(bounds);
+    QPolygonF source;
+    source << QPointF(0, 0) << QPointF(10, 0) << QPointF(10, 10) << QPointF(0, 10) << QPointF(5, 5);
+
+    // Enveloppe non déformée : chaque point reste à sa place.
+    const QPolygonF identityResult = applyEnvelope(source, bounds, identityCorners);
+    for (int i = 0; i < source.size(); ++i) {
+        QVERIFY(std::abs(identityResult[i].x() - source[i].x()) < 1e-9);
+        QVERIFY(std::abs(identityResult[i].y() - source[i].y()) < 1e-9);
+    }
+
+    // Coin haut-gauche tiré vers l'intérieur : le point (0,0) doit suivre.
+    QVector<QPointF> draggedCorners = identityCorners;
+    draggedCorners[0] = QPointF(3, 3);
+    const QPolygonF draggedResult = applyEnvelope(source, bounds, draggedCorners);
+    QCOMPARE(draggedResult.first(), QPointF(3, 3));
+    // Le coin bas-droit (opposé), lui, reste fixe.
+    QCOMPARE(draggedResult[2], QPointF(10, 10));
+    // Le centre (u=v=0.5) est tiré vers la moyenne des 4 coins.
+    const QPointF expectedCenter = (draggedCorners[0] + draggedCorners[1] + draggedCorners[2] + draggedCorners[3]) / 4.0;
+    QVERIFY(std::abs(draggedResult.last().x() - expectedCenter.x()) < 1e-9);
+    QVERIFY(std::abs(draggedResult.last().y() - expectedCenter.y()) < 1e-9);
+}
+
+void EngineTests::agdRoundTripPreservesEnvelope() {
+    Document doc;
+    auto *rect = static_cast<RectShape *>(doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40))));
+    rect->envelopeEnabled = true;
+    rect->envelopeCorners = {QPointF(2, 2), QPointF(38, -4), QPointF(40, 40), QPointF(0, 40)};
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("envelope.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    Shape *loadedShape = loaded.activeLayer()->shapes().front().get();
+    QVERIFY(loadedShape->envelopeEnabled);
+    QCOMPARE(loadedShape->envelopeCorners.size(), 4);
+    QCOMPARE(loadedShape->envelopeCorners[0], QPointF(2, 2));
+    QCOMPARE(loadedShape->envelopeCorners[1], QPointF(38, -4));
+    QCOMPARE(loadedShape->envelopeCorners[2], QPointF(40, 40));
+    QCOMPARE(loadedShape->envelopeCorners[3], QPointF(0, 40));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

@@ -40,6 +40,18 @@ QJsonObject shapeCommonToJson(const engine::Shape &shape) {
     obj["contourOffset"] = shape.contourOffset;
     obj["contourColor"] = shape.contourColor.name(QColor::HexArgb);
 
+    obj["envelopeEnabled"] = shape.envelopeEnabled;
+    if (shape.envelopeCorners.size() == 4) {
+        QJsonArray corners;
+        for (const QPointF &corner : shape.envelopeCorners) {
+            QJsonObject cornerObj;
+            cornerObj["x"] = corner.x();
+            cornerObj["y"] = corner.y();
+            corners.append(cornerObj);
+        }
+        obj["envelopeCorners"] = corners;
+    }
+
     return obj;
 }
 
@@ -79,6 +91,17 @@ void applyShapeCommon(engine::Shape &shape, const QJsonObject &obj) {
     const QColor contourColor(obj.value("contourColor").toString());
     if (contourColor.isValid()) {
         shape.contourColor = contourColor;
+    }
+
+    shape.envelopeEnabled = obj.value("envelopeEnabled").toBool(shape.envelopeEnabled);
+    const QJsonArray cornersArray = obj.value("envelopeCorners").toArray();
+    if (cornersArray.size() == 4) {
+        QVector<QPointF> corners;
+        for (const QJsonValue &value : cornersArray) {
+            const QJsonObject cornerObj = value.toObject();
+            corners.append(QPointF(cornerObj.value("x").toDouble(), cornerObj.value("y").toDouble()));
+        }
+        shape.envelopeCorners = corners;
     }
 }
 

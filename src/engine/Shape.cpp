@@ -23,4 +23,27 @@ QColor interpolateColor(const QColor &a, const QColor &b, qreal t) {
                              a.blueF() + (b.blueF() - a.blueF()) * t, a.alphaF() + (b.alphaF() - a.alphaF()) * t);
 }
 
+QVector<QPointF> defaultEnvelopeCorners(const QRectF &bounds) {
+    return {bounds.topLeft(), bounds.topRight(), bounds.bottomRight(), bounds.bottomLeft()};
+}
+
+QPolygonF applyEnvelope(const QPolygonF &source, const QRectF &sourceBounds, const QVector<QPointF> &corners) {
+    if (corners.size() != 4) {
+        return source;
+    }
+    const qreal w = sourceBounds.width();
+    const qreal h = sourceBounds.height();
+
+    QPolygonF result;
+    result.reserve(source.size());
+    for (const QPointF &p : source) {
+        const qreal u = w > 0.0 ? (p.x() - sourceBounds.left()) / w : 0.0;
+        const qreal v = h > 0.0 ? (p.y() - sourceBounds.top()) / h : 0.0;
+        const QPointF warped = (1 - u) * (1 - v) * corners[0] + u * (1 - v) * corners[1] + u * v * corners[2] +
+                                (1 - u) * v * corners[3];
+        result.append(warped);
+    }
+    return result;
+}
+
 } // namespace agdraw::engine

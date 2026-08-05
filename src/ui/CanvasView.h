@@ -50,6 +50,7 @@ public slots:
     void setSelectionShadow(bool enabled);
     void setSelectionGradient(bool enabled);
     void setSelectionContour(bool enabled);
+    void setSelectionEnvelope(bool enabled);
     void alignSelection(agdraw::ui::AlignMode mode);
     void distributeSelection(agdraw::ui::DistributeMode mode);
     void blendSelection();
@@ -77,6 +78,7 @@ private:
     void setupScene();
     void setupTextEditor();
     int hitTestHandle(const QPoint &viewPos) const;
+    int hitTestEnvelopeHandle(const QPoint &viewPos) const;
     QRectF computeResizedBounds(const QPointF &scenePos) const;
     QVector<agdraw::engine::Shape *> shapesInRect(const QRectF &rect) const;
     void applyCurrentColor(agdraw::engine::Shape *shape) const;
@@ -117,6 +119,11 @@ private:
     int m_activeHandle = -1;
     QRectF m_originalBounds;
     QRectF m_pendingBounds;
+
+    // Glisser en cours : déplacement d'une poignée de coin d'enveloppe.
+    bool m_envelopeDragging = false;
+    int m_envelopeHandle = -1;
+    QVector<QPointF> m_originalEnvelopeCorners;
 
     bool m_panning = false;
     QPoint m_lastPanPoint;

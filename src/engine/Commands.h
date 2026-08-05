@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QUndoCommand>
+#include <QVector>
 #include <memory>
 
 namespace agdraw::engine {
@@ -171,6 +172,38 @@ private:
     Shape *m_shape;
     bool m_oldEnabled;
     bool m_newEnabled;
+};
+
+// Active/désactive l'effet Enveloppe (déformation par coins) d'une forme.
+class SetEnvelopeCommand : public QUndoCommand {
+public:
+    SetEnvelopeCommand(Shape *shape, bool oldEnabled, bool newEnabled, QVector<QPointF> oldCorners,
+                        QVector<QPointF> newCorners);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    bool m_oldEnabled;
+    bool m_newEnabled;
+    QVector<QPointF> m_oldCorners;
+    QVector<QPointF> m_newCorners;
+};
+
+// Déplace un ou plusieurs coins de l'enveloppe d'une forme entre deux
+// jeux de positions absolues (glisser une poignée d'enveloppe).
+class SetEnvelopeCornersCommand : public QUndoCommand {
+public:
+    SetEnvelopeCornersCommand(Shape *shape, QVector<QPointF> oldCorners, QVector<QPointF> newCorners);
+
+    void redo() override;
+    void undo() override;
+
+private:
+    Shape *m_shape;
+    QVector<QPointF> m_oldCorners;
+    QVector<QPointF> m_newCorners;
 };
 
 // Ajoute une page déjà construite au document (annulable).

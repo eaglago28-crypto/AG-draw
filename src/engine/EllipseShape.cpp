@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <QtMath>
 
 namespace agdraw::engine {
 
@@ -18,6 +19,27 @@ void EllipseShape::paint(QPainter &painter) const {
         painter.setPen(Qt::NoPen);
         painter.setBrush(shadowColor);
         painter.drawEllipse(r.translated(shadowOffset));
+    }
+
+    if (envelopeEnabled && envelopeCorners.size() == 4) {
+        constexpr int kSamples = 64;
+        const QPointF center = r.center();
+        const qreal rx = r.width() / 2.0;
+        const qreal ry = r.height() / 2.0;
+
+        QPolygonF outline;
+        outline.reserve(kSamples);
+        for (int i = 0; i < kSamples; ++i) {
+            const qreal angle = 2.0 * M_PI * i / kSamples;
+            outline.append(QPointF(center.x() + rx * std::cos(angle), center.y() + ry * std::sin(angle)));
+        }
+
+        painter.setPen(QPen(strokeColor, strokeWidth));
+        painter.setBrush(gradientEnabled
+                              ? QBrush(makeShapeGradient(r, gradientStartColor, gradientEndColor, gradientAngle))
+                              : QBrush(fillColor));
+        painter.drawPolygon(applyEnvelope(outline, r, envelopeCorners));
+        return;
     }
 
     if (contourEnabled && contourSteps > 0) {

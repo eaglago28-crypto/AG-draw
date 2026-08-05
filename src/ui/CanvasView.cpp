@@ -278,6 +278,36 @@ void CanvasView::setSelectionContour(bool enabled) {
     m_documentItem->update();
 }
 
+void CanvasView::setSelectionEnvelope(bool enabled) {
+    QVector<engine::Shape *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (shape->supportsFillEffects()) {
+            targets.append(shape);
+        }
+    }
+    if (targets.isEmpty()) {
+        return;
+    }
+    if (targets.size() == 1) {
+        engine::Shape *shape = targets.first();
+        const QVector<QPointF> newCorners =
+            enabled && shape->envelopeCorners.size() != 4 ? engine::defaultEnvelopeCorners(shape->bounds()) : shape->envelopeCorners;
+        m_document->undoStack()->push(
+            new engine::SetEnvelopeCommand(shape, shape->envelopeEnabled, enabled, shape->envelopeCorners, newCorners));
+    } else {
+        m_document->undoStack()->beginMacro(tr("Enveloppe"));
+        for (engine::Shape *shape : targets) {
+            const QVector<QPointF> newCorners = enabled && shape->envelopeCorners.size() != 4
+                                                     ? engine::defaultEnvelopeCorners(shape->bounds())
+                                                     : shape->envelopeCorners;
+            m_document->undoStack()->push(new engine::SetEnvelopeCommand(shape, shape->envelopeEnabled, enabled,
+                                                                          shape->envelopeCorners, newCorners));
+        }
+        m_document->undoStack()->endMacro();
+    }
+    m_documentItem->update();
+}
+
 void CanvasView::alignSelection(AlignMode mode) {
     if (m_selection.size() < 2) {
         return;
@@ -497,7 +527,18 @@ void CanvasView::drawForeground(QPainter *painter, const QRectF &) {
             painter->drawRect(bounds.adjusted(-2, -2, 2, 2));
         }
 
-        if (m_selection.size() == 1 && m_selection.first()->isResizable()) {
+        if (m_selection.size() == 1 && m_selection.first()->envelopeEnabled &&
+            m_selection.first()->envelopeCorners.size() == 4) {
+            const qreal handleSize = kHandleRadiusPx / std::max(m_zoom, 0.01);
+            painter->setBrush(accent);
+            painter->setPen(QPen(Qt::white, 0));
+            for (const QPointF &corner : m_selection.first()->envelopeCorners) {
+                QPolygonF diamond;
+                diamond << corner + QPointF(0, -handleSize) << corner + QPointF(handleSize, 0)
+                        << corner + QPointF(0, handleSize) << corner + QPointF(-handleSize, 0);
+                painter->drawPolygon(diamond);
+            }
+        } else if (m_selection.size() == 1 && m_selection.first()->isResizable()) {
             const QRectF bounds = m_resizing ? m_pendingBounds : m_selection.first()->bounds();
             const qreal handleSize = kHandleRadiusPx / std::max(m_zoom, 0.01);
             painter->setBrush(Qt::white);
@@ -570,13 +611,30 @@ QRectF CanvasView::computeResizedBounds(const QPointF &scenePos) const {
 }
 
 int CanvasView::hitTestHandle(const QPoint &viewPos) const {
-    if (m_selection.size() != 1 || !m_selection.first()->isResizable()) {
+    if (m_selection.size() != 1 || !m_selection.first()->isResizable() || m_selection.first()->envelopeEnabled) {
         return -1;
     }
     const QRectF bounds = m_selection.first()->bounds();
     const QPointF corners[4] = {bounds.topLeft(), bounds.topRight(), bounds.bottomLeft(), bounds.bottomRight()};
     for (int i = 0; i < 4; ++i) {
         const QPoint handlePos = mapFromScene(corners[i]);
+        if ((handlePos - viewPos).manhattanLength() <= kHandleRadiusPx * 2) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int CanvasView::hitTestEnvelopeHandle(const QPoint &viewPos) const {
+    if (m_selection.size() != 1) {
+        return -1;
+    }
+    engine::Shape *shape = m_selection.first();
+    if (!shape->envelopeEnabled || shape->envelopeCorners.size() != 4) {
+        return -1;
+    }
+    for (int i = 0; i < 4; ++i) {
+        const QPoint handlePos = mapFromScene(shape->envelopeCorners[i]);
         if ((handlePos - viewPos).manhattanLength() <= kHandleRadiusPx * 2) {
             return i;
         }
@@ -621,6 +679,14 @@ void CanvasView::mousePressEvent(QMouseEvent *event) {
 
     switch (m_activeTool) {
         case Tool::Selection: {
+            const int envelopeHandle = hitTestEnvelopeHandle(event->pos());
+            if (envelopeHandle >= 0) {
+                m_envelopeDragging = true;
+                m_envelopeHandle = envelopeHandle;
+                m_originalEnvelopeCorners = m_selection.first()->envelopeCorners;
+                break;
+            }
+
             const int handle = hitTestHandle(event->pos());
             if (handle >= 0) {
                 m_resizing = true;
@@ -706,6 +772,16 @@ void CanvasView::mouseMoveEvent(QMouseEvent *event) {
 
     const QPointF scenePos = mapToScene(event->pos());
 
+    if (m_envelopeDragging) {
+        engine::Shape *shape = m_selection.first();
+        QVector<QPointF> corners = shape->envelopeCorners;
+        corners[m_envelopeHandle] = scenePos;
+        shape->envelopeCorners = corners;
+        m_documentItem->update();
+        event->accept();
+        return;
+    }
+
     if (m_resizing) {
         m_pendingBounds = computeResizedBounds(scenePos);
         m_selection.first()->setBounds(m_pendingBounds);
@@ -763,6 +839,21 @@ void CanvasView::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::MiddleButton && m_panning) {
         m_panning = false;
         setCursor(Qt::ArrowCursor);
+        event->accept();
+        return;
+    }
+
+    if (m_envelopeDragging) {
+        m_envelopeDragging = false;
+        engine::Shape *shape = m_selection.first();
+        QVector<QPointF> finalCorners = shape->envelopeCorners;
+        finalCorners[m_envelopeHandle] = mapToScene(event->pos());
+        shape->envelopeCorners = m_originalEnvelopeCorners;
+        if (finalCorners != m_originalEnvelopeCorners) {
+            m_document->undoStack()->push(new engine::SetEnvelopeCornersCommand(shape, m_originalEnvelopeCorners, finalCorners));
+        }
+        emit statusMessage(tr("Prêt"));
+        m_documentItem->update();
         event->accept();
         return;
     }

@@ -130,6 +130,34 @@ void SetContourCommand::undo() {
     m_shape->contourEnabled = m_oldEnabled;
 }
 
+SetEnvelopeCommand::SetEnvelopeCommand(Shape *shape, bool oldEnabled, bool newEnabled, QVector<QPointF> oldCorners,
+                                        QVector<QPointF> newCorners)
+    : QUndoCommand(QObject::tr("Enveloppe")), m_shape(shape), m_oldEnabled(oldEnabled), m_newEnabled(newEnabled),
+      m_oldCorners(std::move(oldCorners)), m_newCorners(std::move(newCorners)) {}
+
+void SetEnvelopeCommand::redo() {
+    m_shape->envelopeEnabled = m_newEnabled;
+    m_shape->envelopeCorners = m_newCorners;
+}
+
+void SetEnvelopeCommand::undo() {
+    m_shape->envelopeEnabled = m_oldEnabled;
+    m_shape->envelopeCorners = m_oldCorners;
+}
+
+SetEnvelopeCornersCommand::SetEnvelopeCornersCommand(Shape *shape, QVector<QPointF> oldCorners,
+                                                       QVector<QPointF> newCorners)
+    : QUndoCommand(QObject::tr("Déformer l'enveloppe")), m_shape(shape), m_oldCorners(std::move(oldCorners)),
+      m_newCorners(std::move(newCorners)) {}
+
+void SetEnvelopeCornersCommand::redo() {
+    m_shape->envelopeCorners = m_newCorners;
+}
+
+void SetEnvelopeCornersCommand::undo() {
+    m_shape->envelopeCorners = m_oldCorners;
+}
+
 AddPageCommand::AddPageCommand(Document *document, std::unique_ptr<Page> page, const QString &text)
     : QUndoCommand(text), m_document(document), m_page(std::move(page)), m_pagePtr(m_page.get()) {}
 

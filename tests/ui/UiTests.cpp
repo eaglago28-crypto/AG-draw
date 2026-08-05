@@ -38,11 +38,12 @@ private slots:
     void toolShortcutSwitchesActiveTool();
     void zOrderShortcutsReorderShapes();
     void propertiesBarEditsStrokeWidth();
-    void propertiesBarTogglesShadowGradientAndContour();
+    void propertiesBarTogglesShadowGradientContourAndEnvelope();
     void layersPanelTogglesVisibility();
     void alignSelectionAligns();
     void distributeSelectionSpacesEvenly();
     void blendButtonCreatesIntermediateShapes();
+    void envelopeHandleDragWarpsCorner();
     void multiLineTextBoundsTallerThanSingleLine();
     void textToolCreatesMultiLineShape();
     void pagesPanelAddsAndNavigatesPages();
@@ -122,7 +123,7 @@ void UiTests::propertiesBarEditsStrokeWidth() {
     QCOMPARE(shape->strokeWidth, 1.0);
 }
 
-void UiTests::propertiesBarTogglesShadowGradientAndContour() {
+void UiTests::propertiesBarTogglesShadowGradientContourAndEnvelope() {
     MainWindow window;
     auto *canvas = window.findChild<CanvasView *>();
     auto *toolbox = window.findChild<ToolBox *>("ToolBox");
@@ -139,18 +140,21 @@ void UiTests::propertiesBarTogglesShadowGradientAndContour() {
     QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(150, 140));
 
     const auto checkBoxes = propertiesBar->findChildren<QCheckBox *>();
-    QCOMPARE(checkBoxes.size(), 3);
+    QCOMPARE(checkBoxes.size(), 4);
     QCheckBox *shadowCheck = checkBoxes[0];
     QCheckBox *gradientCheck = checkBoxes[1];
     QCheckBox *contourCheck = checkBoxes[2];
+    QCheckBox *envelopeCheck = checkBoxes[3];
     QVERIFY(shadowCheck->isEnabled());
     QVERIFY(gradientCheck->isEnabled());
     QVERIFY(contourCheck->isEnabled());
+    QVERIFY(envelopeCheck->isEnabled());
 
     Shape *shape = canvas->document().activeLayer()->shapes().front().get();
     QVERIFY(!shape->shadowEnabled);
     QVERIFY(!shape->gradientEnabled);
     QVERIFY(!shape->contourEnabled);
+    QVERIFY(!shape->envelopeEnabled);
 
     shadowCheck->setChecked(true);
     QVERIFY(shape->shadowEnabled);
@@ -166,6 +170,12 @@ void UiTests::propertiesBarTogglesShadowGradientAndContour() {
     QVERIFY(shape->contourEnabled);
     canvas->document().undoStack()->undo();
     QVERIFY(!shape->contourEnabled);
+
+    envelopeCheck->setChecked(true);
+    QVERIFY(shape->envelopeEnabled);
+    QCOMPARE(shape->envelopeCorners.size(), 4); // initialisés aux coins de bounds()
+    canvas->document().undoStack()->undo();
+    QVERIFY(!shape->envelopeEnabled);
 }
 
 void UiTests::layersPanelTogglesVisibility() {
@@ -303,6 +313,46 @@ void UiTests::blendButtonCreatesIntermediateShapes() {
     QCOMPARE(layer->shapeCount(), size_t(2));
     QCOMPARE(a->bounds(), QRectF(0, 0, 20, 20));
     QCOMPARE(b->bounds(), QRectF(100, 0, 20, 20));
+}
+
+void UiTests::envelopeHandleDragWarpsCorner() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    Layer *layer = canvas->document().activeLayer();
+    Shape *shape = layer->addShape(std::make_unique<RectShape>(QRectF(0, 0, 100, 100)));
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, canvas->mapFromScene(QPointF(50, 50)));
+
+    QCheckBox *envelopeCheck = nullptr;
+    for (QCheckBox *box : propertiesBar->findChildren<QCheckBox *>()) {
+        if (box->text() == QObject::tr("Enveloppe")) {
+            envelopeCheck = box;
+            break;
+        }
+    }
+    QVERIFY(envelopeCheck);
+    envelopeCheck->setChecked(true);
+    QVERIFY(shape->envelopeEnabled);
+    QCOMPARE(shape->envelopeCorners[0], QPointF(0, 0)); // haut-gauche, initialisé aux coins de bounds()
+
+    // Glisser la poignée haut-gauche vers l'intérieur (déformation en pointe).
+    const QPoint handlePos = canvas->mapFromScene(QPointF(0, 0));
+    const QPoint targetPos = canvas->mapFromScene(QPointF(40, 40));
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, handlePos);
+    QTest::mouseMove(canvas->viewport(), targetPos);
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, targetPos);
+
+    QCOMPARE(shape->envelopeCorners[0], QPointF(40, 40));
+    QCOMPARE(shape->envelopeCorners[2], QPointF(100, 100)); // les autres coins restent inchangés
+
+    canvas->document().undoStack()->undo();
+    QCOMPARE(shape->envelopeCorners[0], QPointF(0, 0));
 }
 
 void UiTests::multiLineTextBoundsTallerThanSingleLine() {

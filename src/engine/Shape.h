@@ -3,7 +3,9 @@
 #include <QColor>
 #include <QLinearGradient>
 #include <QPointF>
+#include <QPolygonF>
 #include <QRectF>
+#include <QVector>
 
 class QPainter;
 
@@ -49,7 +51,23 @@ public:
     int contourSteps = 4;
     qreal contourOffset = 8.0;
     QColor contourColor = Qt::black;
+
+    // Enveloppe (CorelDRAW) : déforme le contour de la forme en tirant sur
+    // 4 poignées de coin (haut-gauche, haut-droite, bas-droite, bas-gauche),
+    // via une interpolation bilinéaire. Vide tant que l'effet n'a jamais été
+    // activé ; initialisé aux coins de bounds() à l'activation.
+    bool envelopeEnabled = false;
+    QVector<QPointF> envelopeCorners;
 };
+
+// Coins par défaut (haut-gauche, haut-droite, bas-droite, bas-gauche) d'un
+// rectangle englobant, dans l'ordre attendu par envelopeCorners/applyEnvelope.
+QVector<QPointF> defaultEnvelopeCorners(const QRectF &bounds);
+
+// Déforme `source` (polygone exprimé dans le repère de `sourceBounds`) en
+// tirant chaque point vers le quadrilatère `corners` (4 points, même ordre
+// que defaultEnvelopeCorners) par interpolation bilinéaire.
+QPolygonF applyEnvelope(const QPolygonF &source, const QRectF &sourceBounds, const QVector<QPointF> &corners);
 
 // Construit un dégradé linéaire couvrant `bounds`, orienté selon
 // `angleDegrees`. Partagé par les formes qui prennent en charge le
