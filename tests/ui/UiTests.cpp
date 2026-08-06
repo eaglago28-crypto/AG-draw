@@ -69,6 +69,7 @@ private slots:
     void textToCurvesSkipsWhitespace();
     void convertToCurvesButtonReplacesTextWithCompoundShapes();
     void recognizeShapeButtonReplacesCircularBrushStrokeWithEllipse();
+    void brushStrokeResizeHandleDragChangesBounds();
 };
 
 void UiTests::toolShortcutSwitchesActiveTool() {
@@ -787,6 +788,60 @@ void UiTests::recognizeShapeButtonReplacesCircularBrushStrokeWithEllipse() {
     canvas->document().undoStack()->undo();
     QCOMPARE(layer->shapeCount(), size_t(1));
     QVERIFY(dynamic_cast<BrushStroke *>(layer->shapes().front().get()) != nullptr);
+}
+
+void UiTests::brushStrokeResizeHandleDragChangesBounds() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    QVERIFY(canvas && toolbox);
+    canvas->setFocus();
+
+    // Un tracé en zigzag (pas une simple ligne quasi horizontale) : une
+    // boîte englobante avec largeur ET hauteur significatives, pour que le
+    // redimensionnement testé reste raisonnablement proportionné. Un
+    // agrandissement extrêmement non uniforme (ex. x7 en hauteur sur un
+    // trait fin et plat) sort du cas visé par l'approximation documentée
+    // de BrushStroke::setBounds() (voir son commentaire).
+    toolbox->actions()[kBrushIndex]->trigger();
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(100, 100));
+    QTest::mouseMove(canvas->viewport(), QPoint(180, 150));
+    QTest::mouseMove(canvas->viewport(), QPoint(100, 220));
+    QTest::mouseMove(canvas->viewport(), QPoint(220, 220));
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(220, 220));
+
+    Layer *layer = canvas->document().activeLayer();
+    QCOMPARE(layer->shapeCount(), size_t(1));
+    Shape *brush = layer->shapes().front().get();
+    QVERIFY(brush->isResizable());
+    const QRectF originalBounds = brush->bounds();
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    // Sélection par lasso (boîte englobante) : robuste, pas besoin de viser
+    // l'encre exacte du trait.
+    const QPoint dragStart = canvas->mapFromScene(originalBounds.topLeft() - QPointF(5, 5));
+    const QPoint dragEnd = canvas->mapFromScene(originalBounds.bottomRight() + QPointF(5, 5));
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, dragStart);
+    QTest::mouseMove(canvas->viewport(), dragEnd);
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, dragEnd);
+
+    // Glisser la poignée de coin bas-droit pour agrandir la forme,
+    // proportionnellement à sa taille d'origine.
+    const QPoint handlePos = canvas->mapFromScene(originalBounds.bottomRight());
+    const QPointF delta(originalBounds.width() * 0.4, originalBounds.height() * 0.4);
+    const QPoint targetPos = canvas->mapFromScene(originalBounds.bottomRight() + delta);
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, handlePos);
+    QTest::mouseMove(canvas->viewport(), targetPos);
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, targetPos);
+
+    const QRectF resizedBounds = brush->bounds();
+    QVERIFY(resizedBounds.width() > originalBounds.width() + 10);
+    QVERIFY(resizedBounds.height() > originalBounds.height() + 10);
+
+    canvas->document().undoStack()->undo();
+    const QRectF undoneBounds = brush->bounds();
+    QVERIFY(std::abs(undoneBounds.width() - originalBounds.width()) < 2.0);
+    QVERIFY(std::abs(undoneBounds.height() - originalBounds.height()) < 2.0);
 }
 
 QTEST_MAIN(UiTests)

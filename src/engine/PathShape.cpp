@@ -47,6 +47,20 @@ void PathShape::translate(const QPointF &delta) {
     }
 }
 
+void PathShape::setBounds(const QRectF &rect) {
+    const QRectF oldBounds = bounds();
+    if (oldBounds.width() <= 0.0 || oldBounds.height() <= 0.0) {
+        return;
+    }
+    const qreal sx = rect.width() / oldBounds.width();
+    const qreal sy = rect.height() / oldBounds.height();
+    for (PathNode &node : nodes) {
+        node.point = QPointF(rect.left() + (node.point.x() - oldBounds.left()) * sx,
+                              rect.top() + (node.point.y() - oldBounds.top()) * sy);
+        node.handle = QPointF(node.handle.x() * sx, node.handle.y() * sy);
+    }
+}
+
 void PathShape::paint(QPainter &painter) const {
     if (closed) {
         painter.setPen(strokeWidth > 0.0 ? QPen(strokeColor, strokeWidth) : Qt::NoPen);

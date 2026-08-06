@@ -51,6 +51,23 @@ void BrushStroke::translate(const QPointF &delta) {
     }
 }
 
+void BrushStroke::setBounds(const QRectF &rect) {
+    const QRectF oldBounds = bounds();
+    if (oldBounds.width() <= 0.0 || oldBounds.height() <= 0.0) {
+        return;
+    }
+    const qreal sx = rect.width() / oldBounds.width();
+    const qreal sy = rect.height() / oldBounds.height();
+    for (BrushPoint &point : points) {
+        point.point = QPointF(rect.left() + (point.point.x() - oldBounds.left()) * sx,
+                               rect.top() + (point.point.y() - oldBounds.top()) * sy);
+    }
+    // Redimensionnement non uniforme (sx != sy) : approximation par la
+    // moyenne des deux échelles, la géométrie exacte du ruban dépendrait
+    // sinon de la direction locale de chaque segment.
+    baseWidth *= (sx + sy) / 2.0;
+}
+
 void BrushStroke::paint(QPainter &painter) const {
     painter.setPen(Qt::NoPen);
     painter.setBrush(strokeColor);

@@ -78,6 +78,9 @@ private slots:
     void recognizeShapeDetectsSquareAsRectangle();
     void recognizeShapeRejectsOpenStroke();
     void recognizeShapeRejectsTooFewPoints();
+    void pathShapeResizeScalesNodesAndHandles();
+    void compoundPathResizeScalesContours();
+    void brushStrokeResizeScalesPointsAndWidth();
 };
 
 void EngineTests::addShapeUndo() {
@@ -1001,6 +1004,60 @@ void EngineTests::recognizeShapeRejectsTooFewPoints() {
     const ShapeRecognitionResult result = recognizeShape(points);
     QCOMPARE(result.kind, RecognizedShapeKind::None);
     QVERIFY(!result.shape);
+}
+
+void EngineTests::pathShapeResizeScalesNodesAndHandles() {
+    QVector<PathNode> straightNodes;
+    straightNodes.append(PathNode{QPointF(0, 0), QPointF(0, 0)});
+    straightNodes.append(PathNode{QPointF(100, 0), QPointF(0, 0)});
+    straightNodes.append(PathNode{QPointF(100, 100), QPointF(0, 0)});
+    straightNodes.append(PathNode{QPointF(0, 100), QPointF(0, 0)});
+    PathShape shape(straightNodes);
+    QVERIFY(shape.isResizable());
+    QCOMPARE(shape.bounds(), QRectF(0, 0, 100, 100));
+
+    shape.setBounds(QRectF(10, 20, 50, 200));
+    QCOMPARE(shape.bounds(), QRectF(10, 20, 50, 200));
+    QCOMPARE(shape.nodes[2].point, QPointF(60, 220)); // coin opposé, mis à l'échelle correctement.
+
+    // Une poignée de courbe doit être mise à l'échelle par le même facteur
+    // (sx, sy) que les points.
+    QVector<PathNode> curveNodes;
+    curveNodes.append(PathNode{QPointF(0, 0), QPointF(0, 0)});
+    curveNodes.append(PathNode{QPointF(100, 0), QPointF(20, 10)});
+    PathShape curveShape(curveNodes);
+    const QRectF oldCurveBounds = curveShape.bounds();
+    const QRectF newCurveBounds(0, 0, 50, 300);
+    curveShape.setBounds(newCurveBounds);
+    const qreal sx = newCurveBounds.width() / oldCurveBounds.width();
+    const qreal sy = newCurveBounds.height() / oldCurveBounds.height();
+    QCOMPARE(curveShape.nodes[1].handle, QPointF(20 * sx, 10 * sy));
+}
+
+void EngineTests::compoundPathResizeScalesContours() {
+    const QVector<QPointF> square{QPointF(0, 0), QPointF(100, 0), QPointF(100, 100), QPointF(0, 100)};
+    CompoundPathShape shape(std::vector<QVector<QPointF>>{square});
+    QVERIFY(shape.isResizable());
+    QCOMPARE(shape.bounds(), QRectF(0, 0, 100, 100));
+
+    shape.setBounds(QRectF(5, 5, 50, 25));
+    QCOMPARE(shape.bounds(), QRectF(5, 5, 50, 25));
+    QCOMPARE(shape.contours()[0][2], QPointF(55, 30)); // coin (100,100) mis à l'échelle.
+}
+
+void EngineTests::brushStrokeResizeScalesPointsAndWidth() {
+    const QVector<BrushPoint> points{
+        BrushPoint{QPointF(0, 0), 1.0}, BrushPoint{QPointF(50, 0), 1.0}, BrushPoint{QPointF(100, 0), 1.0}};
+    BrushStroke stroke(points, 10.0);
+    QVERIFY(stroke.isResizable());
+
+    const QRectF oldBounds = stroke.bounds();
+    const QRectF newBounds(0, 0, oldBounds.width() * 2.0, oldBounds.height() * 2.0);
+    stroke.setBounds(newBounds);
+
+    QCOMPARE(stroke.baseWidth, 20.0); // échelle uniforme (x2, x2) -> épaisseur x2.
+    QVERIFY(std::abs(stroke.bounds().width() - newBounds.width()) < 0.5);
+    QVERIFY(std::abs(stroke.bounds().height() - newBounds.height()) < 0.5);
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

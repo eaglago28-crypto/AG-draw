@@ -25,6 +25,8 @@ public:
     QRectF bounds() const override;
     bool contains(const QPointF &point) const override;
     void translate(const QPointF &delta) override;
+    void setBounds(const QRectF &rect) override;
+    bool isResizable() const override { return true; }
     void paint(QPainter &painter) const override;
 
     QVector<PathNode> nodes;

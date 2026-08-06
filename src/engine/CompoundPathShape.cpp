@@ -37,6 +37,21 @@ void CompoundPathShape::translate(const QPointF &delta) {
     }
 }
 
+void CompoundPathShape::setBounds(const QRectF &rect) {
+    const QRectF oldBounds = bounds();
+    if (oldBounds.width() <= 0.0 || oldBounds.height() <= 0.0) {
+        return;
+    }
+    const qreal sx = rect.width() / oldBounds.width();
+    const qreal sy = rect.height() / oldBounds.height();
+    for (QVector<QPointF> &contour : m_contours) {
+        for (QPointF &point : contour) {
+            point = QPointF(rect.left() + (point.x() - oldBounds.left()) * sx,
+                             rect.top() + (point.y() - oldBounds.top()) * sy);
+        }
+    }
+}
+
 void CompoundPathShape::paint(QPainter &painter) const {
     painter.setPen(strokeWidth > 0.0 ? QPen(strokeColor, strokeWidth) : Qt::NoPen);
     painter.setBrush(fillColor);
