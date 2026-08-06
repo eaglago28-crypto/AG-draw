@@ -19,6 +19,8 @@ add_library(ag_engine STATIC
     TextToCurves.cpp
     BrushStroke.h
     BrushStroke.cpp
+    ShapeRecognizer.h
+    ShapeRecognizer.cpp
     PowerClipGroup.h
     PowerClipGroup.cpp
     Layer.h

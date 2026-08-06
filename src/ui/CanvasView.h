@@ -75,6 +75,7 @@ public slots:
     void blendSelection();
     void applyPowerClip();
     void convertSelectionToCurves();
+    void recognizeSelectionShape();
     void refreshView();
 
 signals:

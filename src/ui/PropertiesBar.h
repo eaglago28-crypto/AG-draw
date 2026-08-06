@@ -42,6 +42,7 @@ signals:
     void blendRequested();
     void powerClipRequested();
     void convertToCurvesRequested();
+    void recognizeShapeRequested();
 
 private:
     QToolButton *addAlignButton(const QString &text, const QString &tooltip, AlignMode mode);
@@ -59,6 +60,7 @@ private:
     QToolButton *m_blendButton;
     QToolButton *m_powerClipButton;
     QToolButton *m_convertToCurvesButton;
+    QToolButton *m_recognizeShapeButton;
 };
 
 } // namespace agdraw::ui

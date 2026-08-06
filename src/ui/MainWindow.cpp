@@ -73,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(m_propertiesBar, &PropertiesBar::blendRequested, m_canvas, &CanvasView::blendSelection);
     connect(m_propertiesBar, &PropertiesBar::powerClipRequested, m_canvas, &CanvasView::applyPowerClip);
     connect(m_propertiesBar, &PropertiesBar::convertToCurvesRequested, m_canvas, &CanvasView::convertSelectionToCurves);
+    connect(m_propertiesBar, &PropertiesBar::recognizeShapeRequested, m_canvas, &CanvasView::recognizeSelectionShape);
     connect(m_canvas, &CanvasView::selectionCountChanged, m_propertiesBar, &PropertiesBar::setSelectionCount);
     connect(m_canvas, &CanvasView::toolShortcutRequested, this, [this](Tool tool) {
         const auto actions = m_toolBox->actions();

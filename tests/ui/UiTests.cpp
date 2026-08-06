@@ -9,10 +9,13 @@
 #include <QToolBar>
 #include <QToolButton>
 
+#include <cmath>
+
 #include "BrushStroke.h"
 #include "CanvasView.h"
 #include "CompoundPathShape.h"
 #include "Document.h"
+#include "EllipseShape.h"
 #include "Layer.h"
 #include "LayersPanel.h"
 #include "Macro.h"
@@ -65,6 +68,7 @@ private slots:
     void textToCurvesProducesOneShapePerGlyph();
     void textToCurvesSkipsWhitespace();
     void convertToCurvesButtonReplacesTextWithCompoundShapes();
+    void recognizeShapeButtonReplacesCircularBrushStrokeWithEllipse();
 };
 
 void UiTests::toolShortcutSwitchesActiveTool() {
@@ -725,6 +729,64 @@ void UiTests::convertToCurvesButtonReplacesTextWithCompoundShapes() {
     canvas->document().undoStack()->undo();
     QCOMPARE(layer->shapeCount(), size_t(1));
     QVERIFY(dynamic_cast<TextShape *>(layer->shapes().front().get()) != nullptr);
+}
+
+void UiTests::recognizeShapeButtonReplacesCircularBrushStrokeWithEllipse() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    // Trace un cercle approximatif au pinceau (retour près du point de
+    // départ) : c'est ce que reconnaît recognizeShape() comme une ellipse.
+    toolbox->actions()[kBrushIndex]->trigger();
+    const QPoint center(400, 300);
+    const int radius = 80;
+    constexpr int kSteps = 24;
+    const QPoint start(center.x() + radius, center.y());
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    for (int i = 1; i <= kSteps; ++i) {
+        const double angle = 2.0 * M_PI * i / kSteps;
+        const QPoint p(center.x() + static_cast<int>(radius * std::cos(angle)),
+                        center.y() + static_cast<int>(radius * std::sin(angle)));
+        QTest::mouseMove(canvas->viewport(), p);
+    }
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+
+    Layer *layer = canvas->document().activeLayer();
+    QCOMPARE(layer->shapeCount(), size_t(1));
+    Shape *brushShape = layer->shapes().front().get();
+    QVERIFY(dynamic_cast<BrushStroke *>(brushShape) != nullptr);
+
+    // Sélection par lasso (boîte englobante) : robuste même si le centre
+    // du cadre du trait tombe dans le "trou" de l'anneau tracé.
+    toolbox->actions()[kSelectionIndex]->trigger();
+    const QRectF bounds = brushShape->bounds();
+    const QPoint dragStart = canvas->mapFromScene(bounds.topLeft() - QPointF(5, 5));
+    const QPoint dragEnd = canvas->mapFromScene(bounds.bottomRight() + QPointF(5, 5));
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, dragStart);
+    QTest::mouseMove(canvas->viewport(), dragEnd);
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, dragEnd);
+
+    QToolButton *recognizeButton = nullptr;
+    for (QToolButton *button : propertiesBar->findChildren<QToolButton *>()) {
+        if (button->text() == QObject::tr("Reconnaître la forme")) {
+            recognizeButton = button;
+            break;
+        }
+    }
+    QVERIFY(recognizeButton);
+    QVERIFY(recognizeButton->isEnabled());
+    QTest::mouseClick(recognizeButton, Qt::LeftButton);
+
+    QCOMPARE(layer->shapeCount(), size_t(1));
+    QVERIFY(dynamic_cast<EllipseShape *>(layer->shapes().front().get()) != nullptr);
+
+    canvas->document().undoStack()->undo();
+    QCOMPARE(layer->shapeCount(), size_t(1));
+    QVERIFY(dynamic_cast<BrushStroke *>(layer->shapes().front().get()) != nullptr);
 }
 
 QTEST_MAIN(UiTests)

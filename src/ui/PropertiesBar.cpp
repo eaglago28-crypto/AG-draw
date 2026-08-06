@@ -105,6 +105,14 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     m_convertToCurvesButton->setEnabled(false);
     connect(m_convertToCurvesButton, &QToolButton::clicked, this, &PropertiesBar::convertToCurvesRequested);
     addWidget(m_convertToCurvesButton);
+
+    m_recognizeShapeButton = new QToolButton(this);
+    m_recognizeShapeButton->setText(tr("Reconnaître la forme"));
+    m_recognizeShapeButton->setToolTip(
+        tr("Remplacer un tracé au pinceau qui ressemble à un rectangle ou une ellipse par la forme propre"));
+    m_recognizeShapeButton->setEnabled(false);
+    connect(m_recognizeShapeButton, &QToolButton::clicked, this, &PropertiesBar::recognizeShapeRequested);
+    addWidget(m_recognizeShapeButton);
 }
 
 QToolButton *PropertiesBar::addAlignButton(const QString &text, const QString &tooltip, AlignMode mode) {
@@ -181,6 +189,7 @@ void PropertiesBar::setSelectionCount(int count) {
     m_blendButton->setEnabled(count == 2);
     m_powerClipButton->setEnabled(count >= 2);
     m_convertToCurvesButton->setEnabled(count >= 1);
+    m_recognizeShapeButton->setEnabled(count >= 1);
 }
 
 } // namespace agdraw::ui

@@ -20,6 +20,7 @@
 #include "PdfExporter.h"
 #include "PowerClipGroup.h"
 #include "RectShape.h"
+#include "ShapeRecognizer.h"
 #include "TextShape.h"
 
 using namespace agdraw::engine;
@@ -73,6 +74,10 @@ private slots:
     void compoundPathHoleIsNotContained();
     void compoundPathTranslateMovesAllContours();
     void agdRoundTripPreservesCompoundPath();
+    void recognizeShapeDetectsCircleAsEllipse();
+    void recognizeShapeDetectsSquareAsRectangle();
+    void recognizeShapeRejectsOpenStroke();
+    void recognizeShapeRejectsTooFewPoints();
 };
 
 void EngineTests::addShapeUndo() {
@@ -937,6 +942,65 @@ void EngineTests::agdRoundTripPreservesCompoundPath() {
     QCOMPARE(loadedShape->contours().size(), size_t(2));
     QCOMPARE(loadedShape->contours()[0], outer);
     QCOMPARE(loadedShape->contours()[1], hole);
+}
+
+void EngineTests::recognizeShapeDetectsCircleAsEllipse() {
+    QVector<QPointF> points;
+    const QPointF center(100, 100);
+    const qreal radius = 50.0;
+    const int n = 40;
+    for (int i = 0; i < n; ++i) {
+        const qreal angle = 2.0 * M_PI * i / n;
+        points.append(QPointF(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle)));
+    }
+    points.append(points.first()); // referme la boucle.
+
+    const ShapeRecognitionResult result = recognizeShape(points);
+    QCOMPARE(result.kind, RecognizedShapeKind::Ellipse);
+    QVERIFY(result.shape);
+    QVERIFY(dynamic_cast<EllipseShape *>(result.shape.get()) != nullptr);
+    const QRectF bounds = result.shape->bounds();
+    QVERIFY(std::abs(bounds.width() - 2 * radius) < 5.0);
+    QVERIFY(std::abs(bounds.height() - 2 * radius) < 5.0);
+}
+
+void EngineTests::recognizeShapeDetectsSquareAsRectangle() {
+    QVector<QPointF> points;
+    constexpr int kPerSide = 10;
+    auto addEdge = [&](QPointF a, QPointF b) {
+        for (int i = 0; i < kPerSide; ++i) {
+            const qreal t = static_cast<qreal>(i) / kPerSide;
+            points.append(a + (b - a) * t);
+        }
+    };
+    addEdge(QPointF(0, 0), QPointF(100, 0));
+    addEdge(QPointF(100, 0), QPointF(100, 100));
+    addEdge(QPointF(100, 100), QPointF(0, 100));
+    addEdge(QPointF(0, 100), QPointF(0, 0));
+    points.append(points.first()); // referme la boucle.
+
+    const ShapeRecognitionResult result = recognizeShape(points);
+    QCOMPARE(result.kind, RecognizedShapeKind::Rectangle);
+    QVERIFY(result.shape);
+    QVERIFY(dynamic_cast<RectShape *>(result.shape.get()) != nullptr);
+    QCOMPARE(result.shape->bounds(), QRectF(0, 0, 100, 100));
+}
+
+void EngineTests::recognizeShapeRejectsOpenStroke() {
+    QVector<QPointF> points;
+    for (int i = 0; i <= 20; ++i) {
+        points.append(QPointF(i * 5, i * 5));
+    }
+    const ShapeRecognitionResult result = recognizeShape(points);
+    QCOMPARE(result.kind, RecognizedShapeKind::None);
+    QVERIFY(!result.shape);
+}
+
+void EngineTests::recognizeShapeRejectsTooFewPoints() {
+    const QVector<QPointF> points{QPointF(0, 0), QPointF(10, 10), QPointF(20, 0)};
+    const ShapeRecognitionResult result = recognizeShape(points);
+    QCOMPARE(result.kind, RecognizedShapeKind::None);
+    QVERIFY(!result.shape);
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

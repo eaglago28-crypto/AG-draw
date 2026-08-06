@@ -14,6 +14,7 @@
 #include "PngExporter.h"
 #include "PowerClipGroup.h"
 #include "RectShape.h"
+#include "ShapeRecognizer.h"
 #include "TextShape.h"
 #include "TextToCurves.h"
 
@@ -627,6 +628,68 @@ void CanvasView::convertSelectionToCurves() {
     setSelection(newShapes);
     m_documentItem->update();
     emit statusMessage(tr("%1 forme(s) convertie(s) en courbes").arg(newShapes.size()));
+}
+
+void CanvasView::recognizeSelectionShape() {
+    QVector<engine::BrushStroke *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (auto *brush = dynamic_cast<engine::BrushStroke *>(shape)) {
+            targets.append(brush);
+        }
+    }
+    if (targets.isEmpty()) {
+        emit statusMessage(tr("Sélectionnez un tracé au pinceau pour le reconnaître comme une forme"));
+        return;
+    }
+
+    // Résout la reconnaissance de chaque tracé AVANT de toucher à la pile
+    // d'annulation : si aucun n'est reconnu, on ne pousse aucune commande
+    // (une macro vide laisserait une entrée fantôme dans l'historique).
+    struct PendingReplacement {
+        engine::BrushStroke *original;
+        engine::Layer *layer;
+        std::unique_ptr<engine::Shape> replacement;
+    };
+    std::vector<PendingReplacement> pending;
+    for (engine::BrushStroke *brush : targets) {
+        engine::Layer *layer = m_document->findLayerOf(brush);
+        if (!layer) {
+            continue;
+        }
+        QVector<QPointF> points;
+        points.reserve(brush->points.size());
+        for (const engine::BrushPoint &point : brush->points) {
+            points.append(point.point);
+        }
+        engine::ShapeRecognitionResult result = engine::recognizeShape(points);
+        if (!result.shape) {
+            continue;
+        }
+        result.shape->fillColor = brush->fillColor;
+        result.shape->strokeColor = brush->strokeColor;
+        result.shape->strokeWidth = brush->strokeWidth;
+        pending.push_back({brush, layer, std::move(result.shape)});
+    }
+
+    if (pending.empty()) {
+        emit statusMessage(tr("Aucune forme reconnaissable (le tracé doit former une boucle fermée)"));
+        return;
+    }
+
+    QVector<engine::Shape *> newShapes;
+    m_document->undoStack()->beginMacro(tr("Reconnaître la forme"));
+    for (PendingReplacement &item : pending) {
+        auto *addCommand =
+            new engine::AddShapeCommand(item.layer, std::move(item.replacement), tr("Reconnaître la forme"));
+        m_document->undoStack()->push(addCommand);
+        newShapes.append(addCommand->shapePtr());
+        m_document->undoStack()->push(new engine::RemoveShapeCommand(item.layer, item.original, tr("Reconnaître la forme")));
+    }
+    m_document->undoStack()->endMacro();
+
+    setSelection(newShapes);
+    m_documentItem->update();
+    emit statusMessage(tr("%1 forme(s) reconnue(s)").arg(pending.size()));
 }
 
 void CanvasView::startMacroRecording() {
