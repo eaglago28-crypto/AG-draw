@@ -74,10 +74,14 @@ simulé, PowerClip pour masquer un contenu dans un contenant), documents
 multi-pages, automatisation (enregistrement/rejeu de macros),
 vectorisation de bitmap (PowerTRACE par seuil de luminance), et
 production print (export PDF vectoriel avec repères d'impression
-optionnels, séparations couleur CMJN). Prochaine étape du plan d'origine :
-intégrer l'IA (texte-vers-vecteur, croquis-vers-vecteur, correction
-automatique de formes). Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-pour la feuille de route complète.
+optionnels, séparations couleur CMJN). Étape 5 (intégrer l'IA) démarrée :
+texte-vers-vecteur (« Convertir en courbes », extraction de contours de
+police en formes vectorielles éditables, y compris les lettres à trou).
+Cet environnement n'ayant pas accès à un service d'IA générative externe,
+ce chantier et les suivants (croquis-vers-vecteur, correction automatique
+de formes) sont livrés par des moyens algorithmiques réels plutôt que par
+génération IA. Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la
+feuille de route complète.
 
 ## Licence
 
