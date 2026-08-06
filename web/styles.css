@@ -369,6 +369,149 @@ h1 {
   margin: 0;
 }
 
+/* Démo interactive */
+
+.demo-section {
+  padding: 64px 0;
+}
+
+.demo-app {
+  margin-top: 32px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.demo-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-tool {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5em 0.9em;
+  cursor: pointer;
+}
+
+.demo-tool:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.demo-tool.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.demo-shadow-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.demo-toolbar-spacer {
+  flex: 1;
+}
+
+.demo-body {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: color-mix(in srgb, var(--border) 45%, var(--bg));
+}
+
+.demo-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+#demoCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 900 / 440;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+#demoCanvas:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.demo-text-input {
+  position: absolute;
+  z-index: 5;
+  display: none;
+  font: 600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 3px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: #fff;
+  color: #1c2530;
+  min-width: 120px;
+}
+
+.demo-palette {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.demo-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  padding: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.demo-swatch.is-active {
+  border-color: var(--text);
+}
+
+.demo-hint {
+  margin: 0;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .demo-body {
+    flex-direction: column;
+  }
+
+  .demo-palette {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
 /* Roadmap */
 
 .roadmap {

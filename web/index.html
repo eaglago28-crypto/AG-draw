@@ -20,6 +20,7 @@
       <nav class="primary-nav" id="primaryNav">
         <a href="#fonctionnalites">Fonctionnalités</a>
         <a href="#ia">IA</a>
+        <a href="#essai">Essayer</a>
         <a href="#feuille-de-route">Feuille de route</a>
       </nav>
     </div>
@@ -37,8 +38,8 @@
             automatiquement les formes imparfaites.
           </p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="#fonctionnalites">Découvrir les fonctionnalités</a>
-            <a class="btn btn-ghost" href="#ia">Voir les outils IA</a>
+            <a class="btn btn-primary" href="#essai">Essayer en direct</a>
+            <a class="btn btn-ghost" href="#fonctionnalites">Découvrir les fonctionnalités</a>
           </div>
           <dl class="hero-stats">
             <div><dt>Outils de dessin</dt><dd>6</dd></div>
@@ -146,6 +147,44 @@
               parfaitement propre.
             </p>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="essai" class="demo-section">
+      <div class="wrap">
+        <h2>Essayez un aperçu</h2>
+        <p class="section-lede">
+          Un aperçu simplifié, dans le navigateur. L'application complète — courbes de Bézier,
+          calques, effets avancés, IA — tourne en natif, en C++ et Qt.
+        </p>
+
+        <div class="demo-app" id="demoApp">
+          <div class="demo-toolbar" role="toolbar" aria-label="Outils de la démo">
+            <button type="button" class="demo-tool is-active" data-tool="select">Sélection</button>
+            <button type="button" class="demo-tool" data-tool="rect">Rectangle</button>
+            <button type="button" class="demo-tool" data-tool="ellipse">Ellipse</button>
+            <button type="button" class="demo-tool" data-tool="text">Texte</button>
+            <label class="demo-shadow-toggle">
+              <input type="checkbox" id="demoShadow" />
+              Ombre portée
+            </label>
+            <div class="demo-toolbar-spacer"></div>
+            <button type="button" class="demo-tool" id="demoUndo" title="Annuler (Ctrl+Z)">Annuler</button>
+            <button type="button" class="demo-tool" id="demoClear" title="Tout effacer">Effacer</button>
+          </div>
+          <div class="demo-body">
+            <div class="demo-canvas-wrap">
+              <canvas id="demoCanvas" width="900" height="440" tabindex="0"
+                      aria-label="Zone de dessin de la démo : choisissez un outil puis glissez pour dessiner"></canvas>
+              <input type="text" id="demoTextInput" class="demo-text-input" aria-label="Texte à insérer" />
+            </div>
+            <div class="demo-palette" id="demoPalette" role="group" aria-label="Couleurs"></div>
+          </div>
+          <p class="demo-hint">
+            Glissez sur la page pour dessiner. Cliquez une forme pour la sélectionner, glissez-la
+            pour la déplacer, ou tirez un coin pour la redimensionner. Suppr pour l'effacer.
+          </p>
         </div>
       </div>
     </section>
