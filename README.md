@@ -60,7 +60,8 @@ utilisent automatiquement `QT_QPA_PLATFORM=offscreen` (configuré dans
 
 ## Statut
 
-Étape 4 franchie, plus trois chantiers de parité avec CorelDRAW : moteur de
+Étape 4 franchie, et l'ensemble du chantier de parité fonctionnelle avec
+CorelDRAW prévu au lancement du projet est maintenant complet : moteur de
 dessin (rendu QPainter, en attendant Skia), outils
 Sélection/Rectangle/Ellipse/Texte (multi-lignes)/Plume (avec courbes de
 Bézier)/Pinceau (pression de tablette graphique), annuler/rétablir,
@@ -70,10 +71,13 @@ avec visibilité/verrouillage réels, effets (ombre portée, dégradé
 linéaire, contour à anneaux concentriques, fondu entre deux formes,
 enveloppe à 4 poignées de coin déformables, extrusion en relief 3D
 simulé, PowerClip pour masquer un contenu dans un contenant), documents
-multi-pages, automatisation (enregistrement/rejeu de macros), et
-vectorisation de bitmap (PowerTRACE par seuil de luminance). Voir
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
-complète et les étapes à venir.
+multi-pages, automatisation (enregistrement/rejeu de macros),
+vectorisation de bitmap (PowerTRACE par seuil de luminance), et
+production print (export PDF vectoriel avec repères d'impression
+optionnels, séparations couleur CMJN). Prochaine étape du plan d'origine :
+intégrer l'IA (texte-vers-vecteur, croquis-vers-vecteur, correction
+automatique de formes). Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+pour la feuille de route complète.
 
 ## Licence
 
