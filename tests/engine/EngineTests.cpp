@@ -10,6 +10,7 @@
 #include "BrushStroke.h"
 #include "ColorSeparationExporter.h"
 #include "Commands.h"
+#include "CompoundPathShape.h"
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
@@ -68,6 +69,10 @@ private slots:
     void exportColorSeparationsWritesFourGrayscalePngs();
     void exportPdfWritesValidPdfFile();
     void exportPdfWithCropMarksProducesLargerPage();
+    void compoundPathBoundsUnionOfContours();
+    void compoundPathHoleIsNotContained();
+    void compoundPathTranslateMovesAllContours();
+    void agdRoundTripPreservesCompoundPath();
 };
 
 void EngineTests::addShapeUndo() {
@@ -878,6 +883,60 @@ void EngineTests::exportPdfWithCropMarksProducesLargerPage() {
     // La page avec repères est agrandie d'une marge de fond perdu : le
     // contenu PDF (donc la taille du fichier) diffère forcément.
     QVERIFY(plainFile.readAll() != marksFile.readAll());
+}
+
+void EngineTests::compoundPathBoundsUnionOfContours() {
+    QVector<QPointF> squareA{QPointF(0, 0), QPointF(10, 0), QPointF(10, 10), QPointF(0, 10)};
+    QVector<QPointF> squareB{QPointF(50, 50), QPointF(60, 50), QPointF(60, 60), QPointF(50, 60)};
+    CompoundPathShape shape({squareA, squareB});
+
+    QCOMPARE(shape.bounds(), QRectF(0, 0, 60, 60));
+}
+
+void EngineTests::compoundPathHoleIsNotContained() {
+    QVector<QPointF> outer{QPointF(0, 0), QPointF(20, 0), QPointF(20, 20), QPointF(0, 20)};
+    QVector<QPointF> hole{QPointF(5, 5), QPointF(15, 5), QPointF(15, 15), QPointF(5, 15)};
+    CompoundPathShape shape({outer, hole});
+
+    QVERIFY(shape.contains(QPointF(2, 2)));    // dans l'anneau
+    QVERIFY(!shape.contains(QPointF(10, 10))); // dans le trou
+    QVERIFY(!shape.contains(QPointF(30, 30))); // en dehors
+}
+
+void EngineTests::compoundPathTranslateMovesAllContours() {
+    QVector<QPointF> squareA{QPointF(0, 0), QPointF(10, 0), QPointF(10, 10), QPointF(0, 10)};
+    QVector<QPointF> squareB{QPointF(50, 50), QPointF(60, 50), QPointF(60, 60), QPointF(50, 60)};
+    CompoundPathShape shape({squareA, squareB});
+
+    shape.translate(QPointF(5, -3));
+    QCOMPARE(shape.contours()[0][0], QPointF(5, -3));
+    QCOMPARE(shape.contours()[1][0], QPointF(55, 47));
+}
+
+void EngineTests::agdRoundTripPreservesCompoundPath() {
+    Document doc;
+    QVector<QPointF> outer{QPointF(0, 0), QPointF(20, 0), QPointF(20, 20), QPointF(0, 20)};
+    QVector<QPointF> hole{QPointF(5, 5), QPointF(15, 5), QPointF(15, 15), QPointF(5, 15)};
+    auto *shape = static_cast<CompoundPathShape *>(
+        doc.activeLayer()->addShape(std::make_unique<CompoundPathShape>(std::vector<QVector<QPointF>>{outer, hole})));
+    shape->fillColor = QColor(30, 90, 150);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("compound.agd");
+
+    QString error;
+    QVERIFY2(agdraw::io::saveAgd(doc, path, &error), qPrintable(error));
+
+    Document loaded;
+    QVERIFY2(agdraw::io::loadAgd(loaded, path, &error), qPrintable(error));
+
+    auto *loadedShape = dynamic_cast<CompoundPathShape *>(loaded.activeLayer()->shapes().front().get());
+    QVERIFY(loadedShape);
+    QCOMPARE(loadedShape->fillColor, QColor(30, 90, 150));
+    QCOMPARE(loadedShape->contours().size(), size_t(2));
+    QCOMPARE(loadedShape->contours()[0], outer);
+    QCOMPARE(loadedShape->contours()[1], hole);
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

@@ -11,6 +11,7 @@
 
 #include "BrushStroke.h"
 #include "CanvasView.h"
+#include "CompoundPathShape.h"
 #include "Document.h"
 #include "Layer.h"
 #include "LayersPanel.h"
@@ -24,6 +25,7 @@
 #include "PropertiesBar.h"
 #include "RectShape.h"
 #include "TextShape.h"
+#include "TextToCurves.h"
 #include "ToolBox.h"
 
 using namespace agdraw::ui;
@@ -60,6 +62,9 @@ private slots:
     void brushToolCreatesStrokeWithMouse();
     void fileRoundTripThroughCanvas();
     void exportPdfAndSeparationsThroughCanvas();
+    void textToCurvesProducesOneShapePerGlyph();
+    void textToCurvesSkipsWhitespace();
+    void convertToCurvesButtonReplacesTextWithCompoundShapes();
 };
 
 void UiTests::toolShortcutSwitchesActiveTool() {
@@ -654,6 +659,72 @@ void UiTests::exportPdfAndSeparationsThroughCanvas() {
     QVERIFY(QFile::exists(sepBasePath + "_M.png"));
     QVERIFY(QFile::exists(sepBasePath + "_Y.png"));
     QVERIFY(QFile::exists(sepBasePath + "_K.png"));
+}
+
+void UiTests::textToCurvesProducesOneShapePerGlyph() {
+    TextShape text(QPointF(50, 50), QStringLiteral("Hi"));
+    text.fillColor = QColor(10, 20, 30);
+
+    const auto shapes = textToCurves(text);
+    QCOMPARE(shapes.size(), size_t(2)); // 'H' et 'i', pas d'espace
+
+    for (const auto &shape : shapes) {
+        auto *compound = dynamic_cast<CompoundPathShape *>(shape.get());
+        QVERIFY(compound);
+        QVERIFY(!compound->contours().empty());
+        QCOMPARE(compound->fillColor, QColor(10, 20, 30));
+    }
+}
+
+void UiTests::textToCurvesSkipsWhitespace() {
+    TextShape text(QPointF(0, 0), QStringLiteral("A B"));
+    const auto shapes = textToCurves(text);
+    QCOMPARE(shapes.size(), size_t(2)); // 'A' et 'B' ; l'espace ne produit aucune forme
+}
+
+void UiTests::convertToCurvesButtonReplacesTextWithCompoundShapes() {
+    MainWindow window;
+    window.show();
+    auto *canvas = window.findChild<CanvasView *>();
+    auto *toolbox = window.findChild<ToolBox *>("ToolBox");
+    auto *propertiesBar = window.findChild<PropertiesBar *>("PropertiesBar");
+    QVERIFY(canvas && toolbox && propertiesBar);
+    canvas->setFocus();
+
+    toolbox->actions()[kTextIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(100, 100));
+    auto *editor = canvas->findChild<QPlainTextEdit *>();
+    QVERIFY(editor);
+    QTest::keyClicks(editor, QStringLiteral("Hi"));
+    QTest::keyClick(editor, Qt::Key_Return);
+    QCOMPARE(canvas->document().activeLayer()->shapeCount(), size_t(1));
+
+    Layer *layer = canvas->document().activeLayer();
+    Shape *textShape = layer->shapes().front().get();
+
+    toolbox->actions()[kSelectionIndex]->trigger();
+    QTest::mouseClick(canvas->viewport(), Qt::LeftButton, Qt::NoModifier,
+                       canvas->mapFromScene(textShape->bounds().center()));
+
+    QToolButton *convertButton = nullptr;
+    for (QToolButton *button : propertiesBar->findChildren<QToolButton *>()) {
+        if (button->text() == QObject::tr("Convertir en courbes")) {
+            convertButton = button;
+            break;
+        }
+    }
+    QVERIFY(convertButton);
+    QVERIFY(convertButton->isEnabled());
+    QTest::mouseClick(convertButton, Qt::LeftButton);
+
+    QCOMPARE(layer->shapeCount(), size_t(2)); // 'H' et 'i'
+    for (const auto &shape : layer->shapes()) {
+        QVERIFY(dynamic_cast<CompoundPathShape *>(shape.get()) != nullptr);
+    }
+
+    canvas->document().undoStack()->undo();
+    QCOMPARE(layer->shapeCount(), size_t(1));
+    QVERIFY(dynamic_cast<TextShape *>(layer->shapes().front().get()) != nullptr);
 }
 
 QTEST_MAIN(UiTests)

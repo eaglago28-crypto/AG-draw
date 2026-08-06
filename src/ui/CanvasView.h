@@ -74,6 +74,7 @@ public slots:
     void distributeSelection(agdraw::ui::DistributeMode mode);
     void blendSelection();
     void applyPowerClip();
+    void convertSelectionToCurves();
     void refreshView();
 
 signals:

@@ -15,6 +15,7 @@
 #include "PowerClipGroup.h"
 #include "RectShape.h"
 #include "TextShape.h"
+#include "TextToCurves.h"
 
 #include <algorithm>
 
@@ -592,6 +593,40 @@ void CanvasView::applyPowerClip() {
     setSelection({command->groupPtr()});
     m_documentItem->update();
     emit statusMessage(tr("PowerClip créé"));
+}
+
+void CanvasView::convertSelectionToCurves() {
+    QVector<engine::TextShape *> targets;
+    for (engine::Shape *shape : m_selection) {
+        if (auto *text = dynamic_cast<engine::TextShape *>(shape)) {
+            targets.append(text);
+        }
+    }
+    if (targets.isEmpty()) {
+        emit statusMessage(tr("Sélectionnez du texte pour le convertir en courbes"));
+        return;
+    }
+
+    QVector<engine::Shape *> newShapes;
+    m_document->undoStack()->beginMacro(tr("Convertir en courbes"));
+    for (engine::TextShape *text : targets) {
+        engine::Layer *layer = m_document->findLayerOf(text);
+        if (!layer) {
+            continue;
+        }
+        std::vector<std::unique_ptr<engine::Shape>> curves = engine::textToCurves(*text);
+        for (auto &curve : curves) {
+            auto *command = new engine::AddShapeCommand(layer, std::move(curve), tr("Convertir en courbes"));
+            m_document->undoStack()->push(command);
+            newShapes.append(command->shapePtr());
+        }
+        m_document->undoStack()->push(new engine::RemoveShapeCommand(layer, text, tr("Convertir en courbes")));
+    }
+    m_document->undoStack()->endMacro();
+
+    setSelection(newShapes);
+    m_documentItem->update();
+    emit statusMessage(tr("%1 forme(s) convertie(s) en courbes").arg(newShapes.size()));
 }
 
 void CanvasView::startMacroRecording() {

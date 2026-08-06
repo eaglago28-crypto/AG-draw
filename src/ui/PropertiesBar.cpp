@@ -98,6 +98,13 @@ PropertiesBar::PropertiesBar(QWidget *parent) : QToolBar(tr("Propriétés"), par
     m_powerClipButton->setEnabled(false);
     connect(m_powerClipButton, &QToolButton::clicked, this, &PropertiesBar::powerClipRequested);
     addWidget(m_powerClipButton);
+
+    m_convertToCurvesButton = new QToolButton(this);
+    m_convertToCurvesButton->setText(tr("Convertir en courbes"));
+    m_convertToCurvesButton->setToolTip(tr("Convertir le texte sélectionné en formes vectorielles éditables"));
+    m_convertToCurvesButton->setEnabled(false);
+    connect(m_convertToCurvesButton, &QToolButton::clicked, this, &PropertiesBar::convertToCurvesRequested);
+    addWidget(m_convertToCurvesButton);
 }
 
 QToolButton *PropertiesBar::addAlignButton(const QString &text, const QString &tooltip, AlignMode mode) {
@@ -173,6 +180,7 @@ void PropertiesBar::setSelectionCount(int count) {
     }
     m_blendButton->setEnabled(count == 2);
     m_powerClipButton->setEnabled(count >= 2);
+    m_convertToCurvesButton->setEnabled(count >= 1);
 }
 
 } // namespace agdraw::ui

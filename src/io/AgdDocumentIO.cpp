@@ -1,6 +1,7 @@
 #include "AgdDocumentIO.h"
 
 #include "BrushStroke.h"
+#include "CompoundPathShape.h"
 #include "Document.h"
 #include "EllipseShape.h"
 #include "Layer.h"
@@ -198,6 +199,24 @@ QJsonObject powerClipToJson(const engine::PowerClipGroup &group) {
     return obj;
 }
 
+QJsonObject compoundPathToJson(const engine::CompoundPathShape &shape) {
+    QJsonObject obj = shapeCommonToJson(shape);
+    obj["type"] = "compound";
+    QJsonArray contoursArray;
+    for (const QVector<QPointF> &contour : shape.contours()) {
+        QJsonArray pointsArray;
+        for (const QPointF &point : contour) {
+            QJsonObject pointObj;
+            pointObj["x"] = point.x();
+            pointObj["y"] = point.y();
+            pointsArray.append(pointObj);
+        }
+        contoursArray.append(pointsArray);
+    }
+    obj["contours"] = contoursArray;
+    return obj;
+}
+
 QJsonObject shapeToJson(const engine::Shape &shape) {
     if (const auto *rect = dynamic_cast<const engine::RectShape *>(&shape)) {
         return rectToJson(*rect);
@@ -216,6 +235,9 @@ QJsonObject shapeToJson(const engine::Shape &shape) {
     }
     if (const auto *powerClip = dynamic_cast<const engine::PowerClipGroup *>(&shape)) {
         return powerClipToJson(*powerClip);
+    }
+    if (const auto *compound = dynamic_cast<const engine::CompoundPathShape *>(&shape)) {
+        return compoundPathToJson(*compound);
     }
     return {};
 }
@@ -262,6 +284,17 @@ std::unique_ptr<engine::Shape> shapeFromJson(const QJsonObject &obj) {
         if (container) {
             shape = std::make_unique<engine::PowerClipGroup>(std::move(container), std::move(contents));
         }
+    } else if (type == QLatin1String("compound")) {
+        std::vector<QVector<QPointF>> contours;
+        for (const QJsonValue &contourValue : obj.value("contours").toArray()) {
+            QVector<QPointF> contour;
+            for (const QJsonValue &pointValue : contourValue.toArray()) {
+                const QJsonObject pointObj = pointValue.toObject();
+                contour.append(QPointF(pointObj.value("x").toDouble(), pointObj.value("y").toDouble()));
+            }
+            contours.push_back(std::move(contour));
+        }
+        shape = std::make_unique<engine::CompoundPathShape>(std::move(contours));
     }
 
     if (shape) {

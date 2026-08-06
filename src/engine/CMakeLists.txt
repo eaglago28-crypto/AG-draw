@@ -13,6 +13,10 @@ add_library(ag_engine STATIC
     BitmapTracer.cpp
     TextShape.h
     TextShape.cpp
+    CompoundPathShape.h
+    CompoundPathShape.cpp
+    TextToCurves.h
+    TextToCurves.cpp
     BrushStroke.h
     BrushStroke.cpp
     PowerClipGroup.h

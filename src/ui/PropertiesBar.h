@@ -41,6 +41,7 @@ signals:
     void distributeRequested(agdraw::ui::DistributeMode mode);
     void blendRequested();
     void powerClipRequested();
+    void convertToCurvesRequested();
 
 private:
     QToolButton *addAlignButton(const QString &text, const QString &tooltip, AlignMode mode);
@@ -57,6 +58,7 @@ private:
     QList<QToolButton *> m_distributeButtons;
     QToolButton *m_blendButton;
     QToolButton *m_powerClipButton;
+    QToolButton *m_convertToCurvesButton;
 };
 
 } // namespace agdraw::ui
