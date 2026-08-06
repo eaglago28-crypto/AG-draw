@@ -20,6 +20,18 @@ C++ (C++20) · Qt 6 · Skia · Git
 Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour le détail des modules, des
 écrans et de la feuille de route.
 
+## Page d'accueil
+
+Un site vitrine statique (HTML/CSS/JS, sans dépendance) se trouve dans
+[`web/`](web/index.html). Pour le prévisualiser :
+
+```bash
+cd web
+python3 -m http.server 8000
+```
+
+Puis ouvrir <http://localhost:8000>.
+
 ## Compiler et lancer
 
 ### Prérequis

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AG Draw — Dessin vectoriel, augmenté par l'IA</title>
+  <meta name="description" content="AG Draw est un logiciel de dessin vectoriel professionnel qui va plus loin qu'un simple clone de CorelDRAW : texte vers vecteur, croquis vers vecteur, correction automatique de formes." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo" href="#top">
+        <span class="logo-mark" aria-hidden="true"></span>
+        AG Draw
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Ouvrir le menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="primary-nav" id="primaryNav">
+        <a href="#fonctionnalites">Fonctionnalités</a>
+        <a href="#ia">IA</a>
+        <a href="#feuille-de-route">Feuille de route</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">Dessin vectoriel professionnel</p>
+          <h1>Le vecteur, augmenté par l'IA.</h1>
+          <p class="lede">
+            AG Draw n'a pas pour objectif de cloner CorelDRAW — mais de s'appuyer sur la même
+            base d'outils professionnels pour aller plus loin : transformer une phrase en dessin,
+            un croquis en tracé propre, et corriger automatiquement les formes imparfaites.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#fonctionnalites">Découvrir les fonctionnalités</a>
+            <a class="btn btn-ghost" href="#ia">Voir les outils IA</a>
+          </div>
+          <dl class="hero-stats">
+            <div><dt>Outils de dessin</dt><dd>6</dd></div>
+            <div><dt>Effets professionnels</dt><dd>7</dd></div>
+            <div><dt>Plateformes visées</dt><dd>5</dd></div>
+          </dl>
+        </div>
+        <div class="hero-shot">
+          <img src="assets/hero-screenshot.png" width="1400" height="500"
+               alt="Capture d'écran d'AG Draw : un rectangle en dégradé, une ellipse et une étoile dessinés sur la page, avec les panneaux Calques et Pages visibles." />
+        </div>
+      </div>
+    </section>
+
+    <section id="fonctionnalites" class="features">
+      <div class="wrap">
+        <h2>Tout ce qu'il faut pour dessiner comme un studio</h2>
+        <p class="section-lede">Les fondamentaux d'un logiciel de dessin vectoriel professionnel, du premier tracé à l'export prêt pour l'impression.</p>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h9l7 7v9H4z"/><path d="M13 4v7h7"/></svg>
+            </span>
+            <h3>Des outils de dessin complets</h3>
+            <ul>
+              <li>Sélection &amp; redimensionnement</li>
+              <li>Rectangle et ellipse</li>
+              <li>Texte multi-lignes</li>
+              <li>Plume, avec courbes de Bézier</li>
+              <li>Pinceau à pression de tablette graphique</li>
+            </ul>
+          </article>
+
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="5"/><circle cx="15" cy="15" r="5" stroke-dasharray="2 2"/></svg>
+            </span>
+            <h3>Des effets dignes d'un studio</h3>
+            <ul>
+              <li>Ombre portée et dégradé linéaire</li>
+              <li>Contour à anneaux concentriques</li>
+              <li>Fondu (blend) entre deux formes</li>
+              <li>Enveloppe à poignées déformables</li>
+              <li>Extrusion en relief 3D simulé</li>
+              <li>PowerClip pour masquer un contenu</li>
+            </ul>
+          </article>
+
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="6" rx="1"/><rect x="4" y="11" width="16" height="6" rx="1"/><path d="M4 21h16"/></svg>
+            </span>
+            <h3>Un vrai flux de production</h3>
+            <ul>
+              <li>Calques : visibilité et verrouillage</li>
+              <li>Documents multi-pages</li>
+              <li>Historique annuler/rétablir illimité</li>
+              <li>Alignement et distribution d'objets</li>
+              <li>Ordre des plans (avant-plan/arrière-plan)</li>
+              <li>Automatisation par macros enregistrées</li>
+            </ul>
+          </article>
+
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 15l4.5-4.5 3 3L17 7l4 4"/></svg>
+            </span>
+            <h3>Prêt pour l'impression</h3>
+            <ul>
+              <li>Export PDF vectoriel</li>
+              <li>Repères d'impression optionnels</li>
+              <li>Séparations couleur CMJN</li>
+              <li>Vectorisation de bitmap (PowerTRACE)</li>
+              <li>Format natif <code>.agd</code> et export PNG</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="ia" class="ai-section">
+      <div class="wrap">
+        <p class="eyebrow eyebrow-on-accent">Ce qu'aucun autre logiciel de dessin ne fait</p>
+        <h2>L'IA au service du vecteur</h2>
+        <p class="section-lede on-accent">
+          Deux chantiers déjà livrés, par des moyens algorithmiques réels et transparents —
+          pas de boîte noire, pas de service externe requis.
+        </p>
+
+        <div class="ai-grid">
+          <article class="ai-card">
+            <h3>Texte → vecteur</h3>
+            <p>
+              « Convertir en courbes » extrait les contours réels de la police et les transforme
+              en formes vectorielles pleinement éditables, y compris les lettres à trou comme
+              « O », « A » ou « e ».
+            </p>
+          </article>
+          <article class="ai-card">
+            <h3>Croquis → vecteur</h3>
+            <p>
+              Tracez à main levée au pinceau : la reconnaissance géométrique identifie un cercle
+              ou un carré approximatif et le remplace par une ellipse ou un rectangle
+              parfaitement propre.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="feuille-de-route" class="roadmap">
+      <div class="wrap">
+        <h2>Où en est le projet</h2>
+        <p class="section-lede">AG Draw se construit étape par étape, chaque brique testée avant de passer à la suivante.</p>
+
+        <ol class="roadmap-list">
+          <li class="done">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Parité fonctionnelle avec un logiciel de dessin vectoriel professionnel</h3>
+              <p>Moteur de dessin, outils, calques, effets, pages multiples, automatisation, vectorisation bitmap et production print.</p>
+            </div>
+          </li>
+          <li class="in-progress">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Intégration de l'IA</h3>
+              <p>Texte → vecteur et croquis → vecteur livrés. La suite du chantier se poursuit.</p>
+            </div>
+          </li>
+          <li>
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Multi-plateforme</h3>
+              <p>Windows, macOS, Linux, Android et Web, avec ouverture des formats SVG, PDF et autres formats populaires.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>AG Draw — C++20 · Qt 6 · Skia (à venir)</p>
+      <p>Logiciel propriétaire, tous droits réservés.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
