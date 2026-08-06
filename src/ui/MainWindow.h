@@ -28,6 +28,8 @@ private:
     void doSave();
     void doSaveAs();
     void doExportPng();
+    void doExportPdf();
+    void doExportSeparations();
     void doTraceBitmap();
 
     CanvasView *m_canvas;

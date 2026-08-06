@@ -41,6 +41,8 @@ public:
     bool saveToFile(const QString &path, QString *errorMessage = nullptr);
     bool loadFromFile(const QString &path, QString *errorMessage = nullptr);
     bool exportToPng(const QString &path, QString *errorMessage = nullptr);
+    bool exportToPdf(const QString &path, bool includeCropMarks, QString *errorMessage = nullptr);
+    bool exportColorSeparations(const QString &basePath, QString *errorMessage = nullptr);
     bool isEmpty() const;
     void goToPage(agdraw::engine::Page *page);
 

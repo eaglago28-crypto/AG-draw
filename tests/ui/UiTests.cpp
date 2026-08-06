@@ -1,5 +1,6 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QFile>
 #include <QImage>
 #include <QListWidget>
 #include <QPlainTextEdit>
@@ -58,6 +59,7 @@ private slots:
     void newDocumentResetsToOnePage();
     void brushToolCreatesStrokeWithMouse();
     void fileRoundTripThroughCanvas();
+    void exportPdfAndSeparationsThroughCanvas();
 };
 
 void UiTests::toolShortcutSwitchesActiveTool() {
@@ -627,6 +629,31 @@ void UiTests::fileRoundTripThroughCanvas() {
 
     QVERIFY2(canvas->loadFromFile(path, &error), qPrintable(error));
     QCOMPARE(canvas->document().activeLayer()->shapeCount(), size_t(2));
+}
+
+void UiTests::exportPdfAndSeparationsThroughCanvas() {
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    QVERIFY(canvas);
+
+    canvas->document().activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40)));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    QString error;
+    const QString pdfPath = dir.filePath("export.pdf");
+    QVERIFY2(canvas->exportToPdf(pdfPath, /*includeCropMarks=*/true, &error), qPrintable(error));
+    QFile pdfFile(pdfPath);
+    QVERIFY(pdfFile.exists());
+    QVERIFY(pdfFile.size() > 0);
+
+    const QString sepBasePath = dir.filePath("sep");
+    QVERIFY2(canvas->exportColorSeparations(sepBasePath, &error), qPrintable(error));
+    QVERIFY(QFile::exists(sepBasePath + "_C.png"));
+    QVERIFY(QFile::exists(sepBasePath + "_M.png"));
+    QVERIFY(QFile::exists(sepBasePath + "_Y.png"));
+    QVERIFY(QFile::exists(sepBasePath + "_K.png"));
 }
 
 QTEST_MAIN(UiTests)

@@ -5,6 +5,10 @@ add_library(ag_io STATIC
     AgdDocumentIO.cpp
     PngExporter.h
     PngExporter.cpp
+    PdfExporter.h
+    PdfExporter.cpp
+    ColorSeparationExporter.h
+    ColorSeparationExporter.cpp
 )
 
 target_include_directories(ag_io PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

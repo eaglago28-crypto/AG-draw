@@ -3,12 +3,14 @@
 #include "AgdDocumentIO.h"
 #include "BitmapTracer.h"
 #include "BrushStroke.h"
+#include "ColorSeparationExporter.h"
 #include "Commands.h"
 #include "Document.h"
 #include "DocumentItem.h"
 #include "EllipseShape.h"
 #include "Layer.h"
 #include "Page.h"
+#include "PdfExporter.h"
 #include "PngExporter.h"
 #include "PowerClipGroup.h"
 #include "RectShape.h"
@@ -222,6 +224,29 @@ bool CanvasView::exportToPng(const QString &path, QString *errorMessage) {
     }
     const QRectF pageRect = page->rect();
     return io::exportPng(*m_document, path, pageRect, pageRect.size().toSize(), errorMessage);
+}
+
+bool CanvasView::exportToPdf(const QString &path, bool includeCropMarks, QString *errorMessage) {
+    engine::Page *page = m_document->activePage();
+    if (!page) {
+        if (errorMessage) {
+            *errorMessage = tr("Aucune page à exporter.");
+        }
+        return false;
+    }
+    return io::exportPdf(*m_document, path, page->rect(), includeCropMarks, errorMessage);
+}
+
+bool CanvasView::exportColorSeparations(const QString &basePath, QString *errorMessage) {
+    engine::Page *page = m_document->activePage();
+    if (!page) {
+        if (errorMessage) {
+            *errorMessage = tr("Aucune page à exporter.");
+        }
+        return false;
+    }
+    const QRectF pageRect = page->rect();
+    return io::exportColorSeparations(*m_document, basePath, pageRect, pageRect.size().toSize(), errorMessage);
 }
 
 bool CanvasView::traceImageFile(const QString &path, QString *errorMessage) {

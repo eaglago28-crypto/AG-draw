@@ -1,3 +1,4 @@
+#include <QFile>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QTest>
@@ -7,6 +8,7 @@
 #include "AgdDocumentIO.h"
 #include "BitmapTracer.h"
 #include "BrushStroke.h"
+#include "ColorSeparationExporter.h"
 #include "Commands.h"
 #include "Document.h"
 #include "EllipseShape.h"
@@ -14,6 +16,7 @@
 #include "Macro.h"
 #include "Page.h"
 #include "PathShape.h"
+#include "PdfExporter.h"
 #include "PowerClipGroup.h"
 #include "RectShape.h"
 #include "TextShape.h"
@@ -61,6 +64,10 @@ private slots:
     void traceBitmapTwoBlobsProduceTwoShapes();
     void traceBitmapBlankImageProducesNothing();
     void traceBitmapIgnoresBlobsBelowMinArea();
+    void rgbToCmykConvertsKnownColors();
+    void exportColorSeparationsWritesFourGrayscalePngs();
+    void exportPdfWritesValidPdfFile();
+    void exportPdfWithCropMarksProducesLargerPage();
 };
 
 void EngineTests::addShapeUndo() {
@@ -792,6 +799,85 @@ void EngineTests::traceBitmapIgnoresBlobsBelowMinArea() {
     auto *path = dynamic_cast<PathShape *>(shapes.front().get());
     QVERIFY(path);
     QCOMPARE(path->bounds(), QRectF(4, 4, 3, 3));
+}
+
+void EngineTests::rgbToCmykConvertsKnownColors() {
+    const agdraw::io::Cmyk white = agdraw::io::rgbToCmyk(Qt::white);
+    QVERIFY(white.c < 1e-9 && white.m < 1e-9 && white.y < 1e-9 && white.k < 1e-9);
+
+    const agdraw::io::Cmyk black = agdraw::io::rgbToCmyk(Qt::black);
+    QVERIFY(black.k > 1.0 - 1e-9);
+    QVERIFY(black.c < 1e-9 && black.m < 1e-9 && black.y < 1e-9);
+
+    const agdraw::io::Cmyk red = agdraw::io::rgbToCmyk(QColor(255, 0, 0));
+    QVERIFY(red.k < 1e-9);
+    QVERIFY(red.c < 1e-9);
+    QVERIFY(red.m > 1.0 - 1e-9);
+    QVERIFY(red.y > 1.0 - 1e-9);
+}
+
+void EngineTests::exportColorSeparationsWritesFourGrayscalePngs() {
+    Document doc;
+    doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40)))->fillColor = QColor(255, 0, 0);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString basePath = dir.filePath("sep");
+
+    QString error;
+    QVERIFY2(agdraw::io::exportColorSeparations(doc, basePath, QRectF(0, 0, 40, 40), QSize(40, 40), &error),
+              qPrintable(error));
+
+    const QImage cyan(basePath + "_C.png");
+    const QImage magenta(basePath + "_M.png");
+    const QImage yellow(basePath + "_Y.png");
+    const QImage black(basePath + "_K.png");
+    QVERIFY(!cyan.isNull() && !magenta.isNull() && !yellow.isNull() && !black.isNull());
+
+    const QPoint center(20, 20);
+    QVERIFY(qGray(cyan.pixel(center)) > 240);   // pas d'encre cyan sur du rouge pur
+    QVERIFY(qGray(magenta.pixel(center)) < 15); // encre magenta pleine
+    QVERIFY(qGray(yellow.pixel(center)) < 15);  // encre jaune pleine
+    QVERIFY(qGray(black.pixel(center)) > 240);  // pas de noir sur du rouge pur
+}
+
+void EngineTests::exportPdfWritesValidPdfFile() {
+    Document doc;
+    doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40)));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("out.pdf");
+
+    QString error;
+    QVERIFY2(agdraw::io::exportPdf(doc, path, QRectF(0, 0, 100, 100), false, &error), qPrintable(error));
+
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QVERIFY(file.size() > 0);
+    QCOMPARE(file.read(5), QByteArray("%PDF-"));
+}
+
+void EngineTests::exportPdfWithCropMarksProducesLargerPage() {
+    Document doc;
+    doc.activeLayer()->addShape(std::make_unique<RectShape>(QRectF(0, 0, 40, 40)));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString plainPath = dir.filePath("plain.pdf");
+    const QString marksPath = dir.filePath("marks.pdf");
+
+    QString error;
+    QVERIFY2(agdraw::io::exportPdf(doc, plainPath, QRectF(0, 0, 100, 100), false, &error), qPrintable(error));
+    QVERIFY2(agdraw::io::exportPdf(doc, marksPath, QRectF(0, 0, 100, 100), true, &error), qPrintable(error));
+
+    QFile plainFile(plainPath);
+    QFile marksFile(marksPath);
+    QVERIFY(plainFile.open(QIODevice::ReadOnly));
+    QVERIFY(marksFile.open(QIODevice::ReadOnly));
+    // La page avec repères est agrandie d'une marge de fond perdu : le
+    // contenu PDF (donc la taille du fichier) diffère forcément.
+    QVERIFY(plainFile.readAll() != marksFile.readAll());
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

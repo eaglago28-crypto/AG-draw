@@ -112,6 +112,12 @@ void MainWindow::setupFileMenu() {
     exportAction->setShortcut(QKeySequence(tr("Ctrl+E")));
     connect(exportAction, &QAction::triggered, this, &MainWindow::doExportPng);
 
+    QAction *exportPdfAction = fileMenu->addAction(tr("Exporter en &PDF…"));
+    connect(exportPdfAction, &QAction::triggered, this, &MainWindow::doExportPdf);
+
+    QAction *exportSeparationsAction = fileMenu->addAction(tr("Exporter les séparations couleur (CMJN)…"));
+    connect(exportSeparationsAction, &QAction::triggered, this, &MainWindow::doExportSeparations);
+
     fileMenu->addSeparator();
 
     QAction *traceAction = fileMenu->addAction(tr("&Vectoriser une image bitmap…"));
@@ -208,6 +214,40 @@ void MainWindow::doExportPng() {
         QMessageBox::warning(this, tr("Échec de l'export"), error);
     } else {
         statusBar()->showMessage(tr("Image exportée"), 3000);
+    }
+}
+
+void MainWindow::doExportPdf() {
+    const QString path = QFileDialog::getSaveFileName(this, tr("Exporter en PDF"), QString(), tr("Documents PDF (*.pdf)"));
+    if (path.isEmpty()) {
+        return;
+    }
+    const bool includeCropMarks =
+        QMessageBox::question(this, tr("Repères d'impression"),
+                               tr("Inclure les repères de coupe et le fond perdu autour de la page ?"),
+                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::Yes;
+    QString error;
+    if (!m_canvas->exportToPdf(path, includeCropMarks, &error)) {
+        QMessageBox::warning(this, tr("Échec de l'export"), error);
+    } else {
+        statusBar()->showMessage(tr("PDF exporté"), 3000);
+    }
+}
+
+void MainWindow::doExportSeparations() {
+    QString path = QFileDialog::getSaveFileName(this, tr("Exporter les séparations couleur"), QString(),
+                                                  tr("Images PNG (*.png)"));
+    if (path.isEmpty()) {
+        return;
+    }
+    if (path.endsWith(QStringLiteral(".png"), Qt::CaseInsensitive)) {
+        path.chop(4);
+    }
+    QString error;
+    if (!m_canvas->exportColorSeparations(path, &error)) {
+        QMessageBox::warning(this, tr("Échec de l'export"), error);
+    } else {
+        statusBar()->showMessage(tr("Séparations exportées (_C/_M/_Y/_K.png)"), 4000);
     }
 }
 
