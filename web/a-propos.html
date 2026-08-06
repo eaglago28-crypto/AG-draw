@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>À propos — AG Draw</title>
+  <meta name="description" content="La vision d'AG Draw et la feuille de route détaillée, étape par étape." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo" href="index.html#top">
+        <span class="logo-mark" aria-hidden="true"></span>
+        AG Draw
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Ouvrir le menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="primary-nav" id="primaryNav">
+        <a href="index.html#fonctionnalites">Fonctionnalités</a>
+        <a href="index.html#essai">Essayer</a>
+        <a href="documentation.html">Documentation</a>
+        <a href="a-propos.html">À propos</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-header">
+      <div class="wrap">
+        <p class="eyebrow">À propos</p>
+        <h1>Pourquoi AG Draw, et où ça en est</h1>
+        <p class="lede">
+          La vision du projet, et le détail de ce qui a été construit étape par étape —
+          sans survendre ce qui reste à faire.
+        </p>
+      </div>
+    </section>
+
+    <section class="prose-section">
+      <div class="wrap prose">
+        <h2>Vision</h2>
+        <p>
+          AG Draw vise un logiciel de dessin vectoriel professionnel, augmenté par l'IA,
+          capable de :
+        </p>
+        <ul>
+          <li>Dessiner à partir d'une phrase (texte → vecteur)</li>
+          <li>Transformer un croquis en dessin vectoriel propre</li>
+          <li>Corriger automatiquement les formes</li>
+          <li>Générer des logos et affiches en quelques secondes</li>
+          <li>Fonctionner sur Windows, macOS, Linux, Android et Web</li>
+          <li>Ouvrir les formats populaires : SVG, PDF, PNG, JPG, et un format natif</li>
+        </ul>
+        <p class="muted">
+          C'est la direction visée, pas un état déjà atteint sur tous les points — voir la
+          feuille de route ci-dessous pour ce qui est réellement livré aujourd'hui.
+        </p>
+
+        <h2>Approche</h2>
+        <p>
+          Le projet avance brique par brique : chaque fonctionnalité est testée
+          (automatiquement, via CTest et Qt Test — 54 tests moteur et 26 tests
+          d'interface à ce jour) avant de passer à la suivante. Les deux chantiers IA déjà
+          livrés (texte → vecteur, croquis → vecteur) sont implémentés par des moyens
+          algorithmiques réels et vérifiables — extraction de contours de police,
+          reconnaissance géométrique — plutôt que par un modèle génératif externe, cet
+          environnement de développement n'y ayant pas accès pour l'instant.
+        </p>
+
+        <h2>Feuille de route détaillée</h2>
+
+        <ol class="roadmap-list">
+          <li class="done">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Interface et moteur de dessin</h3>
+              <p>Fenêtre Qt 6, modèle Document/Calque/Forme, outils Sélection, Rectangle, Ellipse,
+                Texte et Plume (courbes de Bézier), historique annuler/rétablir, redimensionnement
+                par poignées.</p>
+            </div>
+          </li>
+          <li class="done">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Flux de production</h3>
+              <p>Sauvegarde/chargement au format natif <code>.agd</code>, export PNG, ordre des
+                plans, alignement et distribution d'objets, barre des propriétés reliée à la
+                sélection, raccourcis clavier.</p>
+            </div>
+          </li>
+          <li class="done">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Calques et effets visuels</h3>
+              <p>Calques avec visibilité/verrouillage réels, ombre portée, dégradé linéaire,
+                contour à anneaux concentriques, fondu entre deux formes, enveloppe à poignées
+                déformables, extrusion en relief 3D simulé, PowerClip.</p>
+            </div>
+          </li>
+          <li class="done">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Texte, pages et tablette graphique</h3>
+              <p>Texte multi-lignes, documents multi-pages, outil Pinceau avec pression de
+                tablette graphique.</p>
+            </div>
+          </li>
+          <li class="done">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Automatisation et production print</h3>
+              <p>Macros (enregistrement et rejeu de séquences d'actions), vectorisation de
+                bitmap (PowerTRACE par seuil de luminance), export PDF vectoriel avec repères
+                d'impression, séparations couleur CMJN.</p>
+            </div>
+          </li>
+          <li class="in-progress">
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Intégration de l'IA</h3>
+              <p>Texte → vecteur (« Convertir en courbes », extraction des contours de police en
+                formes éditables) et croquis → vecteur (reconnaissance géométrique d'un tracé au
+                pinceau en rectangle ou ellipse propre) livrés. La suite du chantier se
+                poursuit.</p>
+            </div>
+          </li>
+          <li>
+            <span class="roadmap-marker" aria-hidden="true"></span>
+            <div>
+              <h3>Multi-plateforme</h3>
+              <p>Windows, macOS, Linux, Android et Web, avec ouverture des formats SVG, PDF et
+                autres formats populaires, et intégration du moteur graphique Skia.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>AG Draw — C++20 · Qt 6 · Skia (à venir)</p>
+      <p>Logiciel propriétaire, tous droits réservés.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

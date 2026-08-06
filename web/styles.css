@@ -87,6 +87,137 @@ code {
   font-size: 0.9em;
 }
 
+.text-link {
+  display: inline-block;
+  margin-top: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+/* Pages secondaires (Documentation, À propos, Contact) */
+
+.page-header {
+  padding: 56px 0 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+  font-size: clamp(1.8rem, 1.4rem + 1.6vw, 2.6rem);
+}
+
+.page-header .lede {
+  max-width: 62ch;
+}
+
+.prose-section {
+  padding: 48px 0 96px;
+}
+
+.prose {
+  max-width: 720px;
+}
+
+.prose h2 {
+  margin-top: 2.2em;
+  font-size: 1.5rem;
+}
+
+.prose h2:first-child {
+  margin-top: 0;
+}
+
+.prose h3 {
+  margin-top: 1.6em;
+  font-size: 1.1rem;
+}
+
+.prose p {
+  color: var(--text);
+}
+
+.prose .muted {
+  color: var(--text-muted);
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.3em;
+  color: var(--text);
+}
+
+.prose li {
+  margin-bottom: 0.4em;
+}
+
+.prose pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.prose pre code {
+  background: none;
+  color: var(--text);
+  padding: 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.92rem;
+}
+
+.prose th,
+.prose td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.prose th {
+  color: var(--text-muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.callout {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 0.92rem;
+  color: var(--text);
+  margin: 1.4em 0;
+}
+
+.callout strong {
+  color: var(--accent-strong);
+}
+
+.contact-card {
+  max-width: 480px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+}
+
+.contact-card .btn {
+  margin-top: 8px;
+}
+
 /* Header */
 
 .site-header {

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documentation — AG Draw</title>
+  <meta name="description" content="Compiler, lancer et tester AG Draw : prérequis, commandes CMake, structure réelle du dépôt." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo" href="index.html#top">
+        <span class="logo-mark" aria-hidden="true"></span>
+        AG Draw
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Ouvrir le menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="primary-nav" id="primaryNav">
+        <a href="index.html#fonctionnalites">Fonctionnalités</a>
+        <a href="index.html#essai">Essayer</a>
+        <a href="documentation.html">Documentation</a>
+        <a href="a-propos.html">À propos</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-header">
+      <div class="wrap">
+        <p class="eyebrow">Documentation</p>
+        <h1>Compiler, lancer, tester</h1>
+        <p class="lede">
+          AG Draw se compile depuis les sources — il n'y a pas encore de version
+          préconstruite à télécharger. Voici comment obtenir un binaire qui tourne.
+        </p>
+      </div>
+    </section>
+
+    <section class="prose-section">
+      <div class="wrap prose">
+        <h2>Prérequis</h2>
+        <ul>
+          <li>CMake ≥ 3.21</li>
+          <li>Un compilateur C++20 (GCC, Clang ou MSVC)</li>
+          <li>Qt 6 — module <em>Widgets</em>, plus <em>Test</em> pour exécuter les tests</li>
+        </ul>
+        <p>Sur Debian/Ubuntu :</p>
+        <pre><code>sudo apt install qt6-base-dev qt6-base-dev-tools</code></pre>
+
+        <h2>Configurer et compiler</h2>
+        <pre><code>cmake -S . -B build
+cmake --build build -j"$(nproc)"</code></pre>
+
+        <h2>Lancer l'application</h2>
+        <pre><code>./build/apps/agdraw/agdraw</code></pre>
+
+        <h2>Exécuter les tests</h2>
+        <pre><code>cd build
+ctest --output-on-failure</code></pre>
+        <p class="muted">
+          Sur une machine sans affichage (CI, conteneur headless), les tests d'interface
+          utilisent automatiquement <code>QT_QPA_PLATFORM=offscreen</code>, déjà configuré
+          dans <code>tests/ui/CMakeLists.txt</code>.
+        </p>
+
+        <h2>Structure du dépôt</h2>
+        <p>
+          Trois modules sont compilés aujourd'hui : l'interface (<code>ui</code>), le moteur
+          de dessin (<code>engine</code>) et la gestion des fichiers (<code>io</code>). Le
+          moteur héberge pour l'instant les outils, les calques, les effets et les deux
+          chantiers IA (texte → vecteur, croquis → vecteur) sous une même bibliothèque.
+        </p>
+        <table>
+          <tr><th>Répertoire</th><th>Contenu</th></tr>
+          <tr><td><code>src/ui</code></td><td>Fenêtre principale, barre d'outils, panneaux (calques, pages, macros), barre des propriétés</td></tr>
+          <tr><td><code>src/engine</code></td><td>Scène du document, formes, outils, effets, historique annuler/rétablir, reconnaissance de formes, texte → courbes</td></tr>
+          <tr><td><code>src/io</code></td><td>Format natif <code>.agd</code> (JSON), export PNG, export PDF vectoriel, séparations CMJN</td></tr>
+        </table>
+        <div class="callout">
+          <strong>Réservés, pas encore peuplés :</strong> <code>src/ai</code>,
+          <code>src/effects</code>, <code>src/text</code>, <code>src/images</code>,
+          <code>src/layers</code>, <code>src/cloud</code> et <code>src/plugins</code> existent
+          comme emplacements prévus par <code>docs/ARCHITECTURE.md</code> pour une future
+          séparation en bibliothèques indépendantes. Les fonctionnalités correspondantes
+          tournent déjà, mais vivent aujourd'hui dans <code>engine</code> et <code>ui</code>.
+        </div>
+
+        <h2>Format de fichier</h2>
+        <p>
+          Le format natif <code>.agd</code> est du JSON lisible : pages, calques, formes et
+          leurs effets y sont sérialisés directement, sans format binaire propriétaire caché.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>AG Draw — C++20 · Qt 6 · Skia (à venir)</p>
+      <p>Logiciel propriétaire, tous droits réservés.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
