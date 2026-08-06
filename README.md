@@ -70,7 +70,8 @@ avec visibilité/verrouillage réels, effets (ombre portée, dégradé
 linéaire, contour à anneaux concentriques, fondu entre deux formes,
 enveloppe à 4 poignées de coin déformables, extrusion en relief 3D
 simulé, PowerClip pour masquer un contenu dans un contenant), documents
-multi-pages, et automatisation (enregistrement/rejeu de macros). Voir
+multi-pages, automatisation (enregistrement/rejeu de macros), et
+vectorisation de bitmap (PowerTRACE par seuil de luminance). Voir
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour la feuille de route
 complète et les étapes à venir.
 
