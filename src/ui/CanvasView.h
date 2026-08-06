@@ -44,6 +44,12 @@ public:
     bool isEmpty() const;
     void goToPage(agdraw::engine::Page *page);
 
+    // Vectorise l'image bitmap `path` (voir engine::traceBitmap) et ajoute
+    // les silhouettes obtenues au calque actif, à l'emplacement de la page
+    // active. Retourne false (avec errorMessage) si le fichier ne peut pas
+    // être chargé comme image, ou si aucune forme n'a été détectée.
+    bool traceImageFile(const QString &path, QString *errorMessage = nullptr);
+
     // Enregistrement de macro : capture les actions (couleur, épaisseur de
     // trait, effets, déplacement) appliquées à la sélection pendant qu'un
     // enregistrement est en cours. stopMacroRecording() n'ajoute la macro

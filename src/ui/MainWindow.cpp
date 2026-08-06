@@ -114,6 +114,11 @@ void MainWindow::setupFileMenu() {
 
     fileMenu->addSeparator();
 
+    QAction *traceAction = fileMenu->addAction(tr("&Vectoriser une image bitmap…"));
+    connect(traceAction, &QAction::triggered, this, &MainWindow::doTraceBitmap);
+
+    fileMenu->addSeparator();
+
     QAction *quitAction = fileMenu->addAction(tr("&Quitter"));
     quitAction->setShortcut(QKeySequence::Quit);
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
@@ -203,6 +208,18 @@ void MainWindow::doExportPng() {
         QMessageBox::warning(this, tr("Échec de l'export"), error);
     } else {
         statusBar()->showMessage(tr("Image exportée"), 3000);
+    }
+}
+
+void MainWindow::doTraceBitmap() {
+    const QString path = QFileDialog::getOpenFileName(this, tr("Vectoriser une image bitmap"), QString(),
+                                                        tr("Images (*.png *.jpg *.jpeg *.bmp *.gif)"));
+    if (path.isEmpty()) {
+        return;
+    }
+    QString error;
+    if (!m_canvas->traceImageFile(path, &error)) {
+        QMessageBox::warning(this, tr("Échec de la vectorisation"), error);
     }
 }
 

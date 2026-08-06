@@ -1,6 +1,7 @@
 #include "CanvasView.h"
 
 #include "AgdDocumentIO.h"
+#include "BitmapTracer.h"
 #include "BrushStroke.h"
 #include "Commands.h"
 #include "Document.h"
@@ -16,6 +17,7 @@
 #include <algorithm>
 
 #include <QGraphicsScene>
+#include <QImage>
 #include <QKeyEvent>
 #include <QPlainTextEdit>
 #include <QMouseEvent>
@@ -36,6 +38,17 @@ constexpr qreal kMaxZoom = 40.0;
 constexpr qreal kHandleRadiusPx = 6.0;
 constexpr qreal kMinShapeSize = 2.0;
 constexpr qreal kMinPenHandleLength = 3.0;
+
+// Les tracés ouverts (outil Plume) et les traits de pinceau n'ont pas de
+// remplissage visible : la couleur active agit sur strokeColor. Un tracé
+// fermé (silhouette issue de la vectorisation de bitmap) est traité comme
+// une forme à surface normale : la couleur active agit sur fillColor.
+bool isStrokeOnlyShape(engine::Shape *shape) {
+    if (auto *path = dynamic_cast<engine::PathShape *>(shape)) {
+        return !path->closed;
+    }
+    return dynamic_cast<engine::BrushStroke *>(shape) != nullptr;
+}
 } // namespace
 
 CanvasView::CanvasView(QWidget *parent)
@@ -101,7 +114,7 @@ void CanvasView::setActiveColor(const QColor &color) {
     if (!m_selection.isEmpty()) {
         m_document->undoStack()->beginMacro(tr("Couleur"));
         for (engine::Shape *shape : m_selection) {
-            if (dynamic_cast<engine::PathShape *>(shape) || dynamic_cast<engine::BrushStroke *>(shape)) {
+            if (isStrokeOnlyShape(shape)) {
                 m_document->undoStack()->push(new engine::SetStrokeColorCommand(shape, shape->strokeColor, color));
             } else {
                 m_document->undoStack()->push(new engine::SetFillColorCommand(shape, shape->fillColor, color));
@@ -120,7 +133,7 @@ void CanvasView::setActiveColor(const QColor &color) {
 }
 
 void CanvasView::applyCurrentColor(engine::Shape *shape) const {
-    if (dynamic_cast<engine::PathShape *>(shape) || dynamic_cast<engine::BrushStroke *>(shape)) {
+    if (isStrokeOnlyShape(shape)) {
         shape->strokeColor = m_currentColor;
     } else {
         shape->fillColor = m_currentColor;
@@ -209,6 +222,41 @@ bool CanvasView::exportToPng(const QString &path, QString *errorMessage) {
     }
     const QRectF pageRect = page->rect();
     return io::exportPng(*m_document, path, pageRect, pageRect.size().toSize(), errorMessage);
+}
+
+bool CanvasView::traceImageFile(const QString &path, QString *errorMessage) {
+    QImage image(path);
+    if (image.isNull()) {
+        if (errorMessage) {
+            *errorMessage = tr("Impossible de lire cette image.");
+        }
+        return false;
+    }
+
+    engine::Page *page = m_document->activePage();
+    const QRectF targetRect = page ? page->rect() : QRectF(0, 0, 400, 400);
+
+    auto shapes = engine::traceBitmap(image, targetRect);
+    if (shapes.empty()) {
+        if (errorMessage) {
+            *errorMessage = tr("Aucune forme détectée dans cette image (essayez une image plus contrastée).");
+        }
+        return false;
+    }
+
+    engine::Layer *layer = m_document->activeLayer();
+    m_document->undoStack()->beginMacro(tr("Vectoriser une image"));
+    QVector<engine::Shape *> traced;
+    for (auto &shape : shapes) {
+        auto *command = new engine::AddShapeCommand(layer, std::move(shape), tr("Vectoriser une image"));
+        m_document->undoStack()->push(command);
+        traced.append(command->shapePtr());
+    }
+    m_document->undoStack()->endMacro();
+    setSelection(traced);
+    m_documentItem->update();
+    emit statusMessage(tr("%1 forme(s) vectorisée(s)").arg(traced.size()));
+    return true;
 }
 
 void CanvasView::goToPage(engine::Page *page) {

@@ -21,6 +21,9 @@ QPainterPath PathShape::toPath() const {
             path.cubicTo(prev.point + prev.handle, cur.point - cur.handle, cur.point);
         }
     }
+    if (closed) {
+        path.closeSubpath();
+    }
     return path;
 }
 
@@ -29,9 +32,13 @@ QRectF PathShape::bounds() const {
 }
 
 bool PathShape::contains(const QPointF &point) const {
+    const QPainterPath path = toPath();
+    if (closed && path.contains(point)) {
+        return true;
+    }
     QPainterPathStroker stroker;
     stroker.setWidth(std::max(strokeWidth, 6.0));
-    return stroker.createStroke(toPath()).contains(point);
+    return stroker.createStroke(path).contains(point);
 }
 
 void PathShape::translate(const QPointF &delta) {
@@ -41,8 +48,13 @@ void PathShape::translate(const QPointF &delta) {
 }
 
 void PathShape::paint(QPainter &painter) const {
-    painter.setPen(QPen(strokeColor, strokeWidth));
-    painter.setBrush(Qt::NoBrush);
+    if (closed) {
+        painter.setPen(strokeWidth > 0.0 ? QPen(strokeColor, strokeWidth) : Qt::NoPen);
+        painter.setBrush(fillColor);
+    } else {
+        painter.setPen(QPen(strokeColor, strokeWidth));
+        painter.setBrush(Qt::NoBrush);
+    }
     painter.drawPath(toPath());
 }
 

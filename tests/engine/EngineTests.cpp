@@ -1,9 +1,11 @@
+#include <QImage>
 #include <QTemporaryDir>
 #include <QTest>
 
 #include <cmath>
 
 #include "AgdDocumentIO.h"
+#include "BitmapTracer.h"
 #include "BrushStroke.h"
 #include "Commands.h"
 #include "Document.h"
@@ -55,6 +57,10 @@ private slots:
     void applyMacroRunsStepsOnEveryTarget();
     void applyMacroUndoesAsOneStep();
     void agdRoundTripPreservesMacros();
+    void traceBitmapSingleSquareProducesOneClosedShape();
+    void traceBitmapTwoBlobsProduceTwoShapes();
+    void traceBitmapBlankImageProducesNothing();
+    void traceBitmapIgnoresBlobsBelowMinArea();
 };
 
 void EngineTests::addShapeUndo() {
@@ -719,6 +725,73 @@ void EngineTests::agdRoundTripPreservesMacros() {
     QVERIFY(loadedMacro.steps[1].enabled);
     QCOMPARE(loadedMacro.steps[2].kind, MacroStep::Kind::Translate);
     QCOMPARE(loadedMacro.steps[2].delta, QPointF(3, -4));
+}
+
+void EngineTests::traceBitmapSingleSquareProducesOneClosedShape() {
+    QImage image(8, 8, QImage::Format_RGB32);
+    image.fill(Qt::white);
+    for (int y = 2; y < 5; ++y) {
+        for (int x = 2; x < 5; ++x) {
+            image.setPixel(x, y, qRgb(0, 0, 0));
+        }
+    }
+
+    const auto shapes = traceBitmap(image, QRectF(0, 0, 8, 8));
+    QCOMPARE(shapes.size(), size_t(1));
+
+    auto *path = dynamic_cast<PathShape *>(shapes.front().get());
+    QVERIFY(path);
+    QVERIFY(path->closed);
+    QCOMPARE(path->bounds(), QRectF(2, 2, 3, 3));
+    QCOMPARE(path->fillColor, QColor(0, 0, 0));
+}
+
+void EngineTests::traceBitmapTwoBlobsProduceTwoShapes() {
+    QImage image(13, 6, QImage::Format_RGB32);
+    image.fill(Qt::white);
+    for (int y = 1; y < 4; ++y) {
+        for (int x = 1; x < 4; ++x) {
+            image.setPixel(x, y, qRgb(0, 0, 0));
+        }
+    }
+    for (int y = 1; y < 4; ++y) {
+        for (int x = 8; x < 11; ++x) {
+            image.setPixel(x, y, qRgb(200, 20, 20));
+        }
+    }
+
+    const auto shapes = traceBitmap(image, QRectF(0, 0, 13, 6));
+    QCOMPARE(shapes.size(), size_t(2));
+    for (const auto &shape : shapes) {
+        auto *path = dynamic_cast<PathShape *>(shape.get());
+        QVERIFY(path);
+        QVERIFY(path->closed);
+    }
+}
+
+void EngineTests::traceBitmapBlankImageProducesNothing() {
+    QImage image(8, 8, QImage::Format_RGB32);
+    image.fill(Qt::white);
+
+    const auto shapes = traceBitmap(image, QRectF(0, 0, 8, 8));
+    QVERIFY(shapes.empty());
+}
+
+void EngineTests::traceBitmapIgnoresBlobsBelowMinArea() {
+    QImage image(8, 8, QImage::Format_RGB32);
+    image.fill(Qt::white);
+    image.setPixel(0, 0, qRgb(0, 0, 0)); // bruit d'un seul pixel
+    for (int y = 4; y < 7; ++y) {
+        for (int x = 4; x < 7; ++x) {
+            image.setPixel(x, y, qRgb(0, 0, 0));
+        }
+    }
+
+    const auto shapes = traceBitmap(image, QRectF(0, 0, 8, 8)); // minBlobArea par défaut = 6
+    QCOMPARE(shapes.size(), size_t(1));
+    auto *path = dynamic_cast<PathShape *>(shapes.front().get());
+    QVERIFY(path);
+    QCOMPARE(path->bounds(), QRectF(4, 4, 3, 3));
 }
 
 QTEST_APPLESS_MAIN(EngineTests)

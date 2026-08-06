@@ -28,6 +28,7 @@ private:
     void doSave();
     void doSaveAs();
     void doExportPng();
+    void doTraceBitmap();
 
     CanvasView *m_canvas;
     ToolBox *m_toolBox;

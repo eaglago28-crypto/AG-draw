@@ -1,5 +1,6 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QImage>
 #include <QListWidget>
 #include <QPlainTextEdit>
 #include <QTemporaryDir>
@@ -17,6 +18,7 @@
 #include "MainWindow.h"
 #include "Page.h"
 #include "PagesPanel.h"
+#include "PathShape.h"
 #include "PowerClipGroup.h"
 #include "PropertiesBar.h"
 #include "RectShape.h"
@@ -49,6 +51,7 @@ private slots:
     void envelopeHandleDragWarpsCorner();
     void powerClipButtonGroupsSelection();
     void macroRecordingCapturesAndReplaysSteps();
+    void traceImageFileAddsClosedShapesFilledByPalette();
     void multiLineTextBoundsTallerThanSingleLine();
     void textToolCreatesMultiLineShape();
     void pagesPanelAddsAndNavigatesPages();
@@ -459,6 +462,47 @@ void UiTests::macroRecordingCapturesAndReplaysSteps() {
 
     canvas->document().undoStack()->undo();
     QVERIFY(!other->shadowEnabled);
+}
+
+void UiTests::traceImageFileAddsClosedShapesFilledByPalette() {
+    QImage image(8, 8, QImage::Format_RGB32);
+    image.fill(Qt::white);
+    for (int y = 2; y < 5; ++y) {
+        for (int x = 2; x < 5; ++x) {
+            image.setPixel(x, y, qRgb(0, 0, 0));
+        }
+    }
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("trace_source.png");
+    QVERIFY(image.save(path));
+
+    MainWindow window;
+    auto *canvas = window.findChild<CanvasView *>();
+    QVERIFY(canvas);
+
+    Layer *layer = canvas->document().activeLayer();
+    QCOMPARE(layer->shapeCount(), size_t(0));
+
+    QString error;
+    QVERIFY2(canvas->traceImageFile(path, &error), qPrintable(error));
+    QCOMPARE(layer->shapeCount(), size_t(1));
+
+    auto *traced = dynamic_cast<PathShape *>(layer->shapes().front().get());
+    QVERIFY(traced);
+    QVERIFY(traced->closed);
+    const QColor originalStroke = traced->strokeColor;
+
+    // La couleur active doit s'appliquer au remplissage (silhouette), pas au
+    // trait, contrairement à un tracé ouvert de l'outil Plume.
+    canvas->setActiveColor(QColor(0, 200, 0));
+    QCOMPARE(traced->fillColor, QColor(0, 200, 0));
+    QCOMPARE(traced->strokeColor, originalStroke);
+
+    canvas->document().undoStack()->undo(); // annule le changement de couleur
+    canvas->document().undoStack()->undo(); // annule l'ajout des formes vectorisées
+    QCOMPARE(layer->shapeCount(), size_t(0));
 }
 
 void UiTests::multiLineTextBoundsTallerThanSingleLine() {

@@ -29,6 +29,12 @@ public:
 
     QVector<PathNode> nodes;
 
+    // Ferme le tracé (relie le dernier nœud au premier) et le remplit avec
+    // fillColor au lieu de se limiter à un trait. Utilisé par la
+    // vectorisation de bitmap pour les silhouettes de régions ; les tracés
+    // de l'outil Plume restent ouverts (closed = false).
+    bool closed = false;
+
 private:
     QPainterPath toPath() const;
 };

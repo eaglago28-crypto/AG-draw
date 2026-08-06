@@ -9,6 +9,8 @@ add_library(ag_engine STATIC
     EllipseShape.cpp
     PathShape.h
     PathShape.cpp
+    BitmapTracer.h
+    BitmapTracer.cpp
     TextShape.h
     TextShape.cpp
     BrushStroke.h

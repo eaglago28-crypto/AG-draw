@@ -154,6 +154,7 @@ QJsonObject pathToJson(const engine::PathShape &shape) {
         nodes.append(nodeObj);
     }
     obj["nodes"] = nodes;
+    obj["closed"] = shape.closed;
     return obj;
 }
 
@@ -237,6 +238,7 @@ std::unique_ptr<engine::Shape> shapeFromJson(const QJsonObject &obj) {
                                            QPointF(nodeObj.value("hx").toDouble(), nodeObj.value("hy").toDouble())});
         }
         shape = std::make_unique<engine::PathShape>(nodes);
+        static_cast<engine::PathShape *>(shape.get())->closed = obj.value("closed").toBool(false);
     } else if (type == QLatin1String("text")) {
         shape = std::make_unique<engine::TextShape>(QPointF(obj.value("x").toDouble(), obj.value("y").toDouble()),
                                                       obj.value("text").toString());
